@@ -946,6 +946,18 @@
         .org-panel .wake-btn { margin-top:8px; padding:8px 16px; background:#22c55e; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:500; }
         .org-panel .wake-btn:hover { background:#16a34a; }
         .org-panel .activity-item { padding:8px 0; border-bottom:1px solid var(--border); font-size:12px; }
+        /* Vendor panel */
+        .vendor-panel { position:fixed; right:-420px; top:0; width:400px; height:100vh; background:var(--surface); border-left:1px solid var(--border); z-index:100; transition:right 0.3s ease; overflow-y:auto; padding:24px; box-shadow:-4px 0 24px rgba(0,0,0,0.3); }
+        .vendor-panel.open { right:0; }
+        .vendor-panel .close-btn { position:absolute; top:16px; right:16px; background:none; border:none; color:var(--text-secondary); font-size:20px; cursor:pointer; }
+        .vendor-panel .form-input { width:100%; padding:8px 12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:13px; margin-bottom:12px; }
+        .vendor-panel .form-label { display:block; font-size:12px; font-weight:500; color:var(--text-secondary); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.05em; }
+        .vendor-panel .form-select { width:100%; padding:8px 12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:13px; margin-bottom:12px; }
+        .vendor-panel .form-textarea { width:100%; padding:8px 12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:13px; margin-bottom:12px; resize:vertical; }
+        .vendor-panel .btn-save { margin-right:8px; padding:8px 16px; background:#22c55e; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:500; }
+        .vendor-panel .btn-save:hover { background:#16a34a; }
+        .vendor-panel .btn-delete { padding:8px 16px; background:#ef4444; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:500; }
+        .vendor-panel .btn-delete:hover { background:#dc2626; }
         /* Toast */
         .org-toast { position:fixed; bottom:24px; right:24px; background:#22c55e; color:white; padding:12px 20px; border-radius:10px; font-size:14px; z-index:200; opacity:0; transition:opacity 0.3s; pointer-events:none; }
         .org-toast.show { opacity:1; }
@@ -954,6 +966,7 @@
           .org-level { flex-direction:column; align-items:center; }
           .org-card { max-width:100%; min-width:auto; }
           .org-panel { width:100%; right:-100%; }
+          .vendor-panel { width:100%; right:-100%; }
         }
       </style>
 
@@ -1076,6 +1089,12 @@
             </tbody>
           </table>
         </div>
+      </div>
+      
+      <!-- Vendor Detail Panel -->
+      <div class="vendor-panel" id="vendor-panel">
+        <button class="close-btn" onclick="closeVendorPanel()">✕</button>
+        <div id="vendor-panel-content"></div>
       </div>
     </section>
 
@@ -3832,8 +3851,229 @@ function openVendorDetail(id) {
   const vendor = VENDORS.find(v => v.id === id);
   if (!vendor) return;
   
-  // For now, just edit the vendor
-  openVendorModal(id);
+  openVendorPanel(vendor);
+}
+
+function openVendorPanel(vendor) {
+  document.getElementById('vendor-panel-content').innerHTML = `
+    <div style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-size:20px;font-weight:700">${vendor.name}</span>
+      </div>
+      <div style="color:var(--text-secondary);font-size:14px">${vendor.category?.replace('-', ' ') || 'No category'}</div>
+    </div>
+    
+    <form id="vendor-edit-form" onsubmit="saveVendor(${vendor.id}, event)">
+      <div class="mb-4">
+        <label class="form-label">Vendor Name *</label>
+        <input type="text" id="vendor-edit-name" class="form-input" value="${vendor.name || ''}" required>
+      </div>
+      
+      <div class="mb-4">
+        <label class="form-label">Category *</label>
+        <select id="vendor-edit-category" class="form-select" required>
+          <option value="">Select Category</option>
+          <option value="lead-gen" ${vendor.category === 'lead-gen' ? 'selected' : ''}>Lead Gen</option>
+          <option value="design" ${vendor.category === 'design' ? 'selected' : ''}>Design</option>
+          <option value="infrastructure" ${vendor.category === 'infrastructure' ? 'selected' : ''}>Infrastructure</option>
+          <option value="analytics" ${vendor.category === 'analytics' ? 'selected' : ''}>Analytics</option>
+          <option value="social" ${vendor.category === 'social' ? 'selected' : ''}>Social</option>
+          <option value="communication" ${vendor.category === 'communication' ? 'selected' : ''}>Communication</option>
+          <option value="other" ${vendor.category === 'other' ? 'selected' : ''}>Other</option>
+        </select>
+      </div>
+      
+      <div class="mb-4">
+        <label class="form-label">Website URL</label>
+        <input type="url" id="vendor-edit-url" class="form-input" value="${vendor.url || ''}" placeholder="https://...">
+      </div>
+      
+      <div class="mb-4">
+        <label class="form-label">Plan</label>
+        <input type="text" id="vendor-edit-plan" class="form-input" value="${vendor.plan || ''}" placeholder="Pro, Enterprise, etc.">
+      </div>
+      
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label class="form-label">Monthly Cost</label>
+          <input type="number" step="0.01" id="vendor-edit-cost-monthly" class="form-input" value="${vendor.cost_monthly || ''}" placeholder="0.00">
+        </div>
+        <div>
+          <label class="form-label">Annual Cost</label>
+          <input type="number" step="0.01" id="vendor-edit-cost-annual" class="form-input" value="${vendor.cost_annual || ''}" placeholder="0.00">
+        </div>
+      </div>
+      
+      <div class="mb-4">
+        <label class="form-label">Billing Cycle</label>
+        <select id="vendor-edit-billing-cycle" class="form-select">
+          <option value="monthly" ${vendor.billing_cycle === 'monthly' ? 'selected' : ''}>Monthly</option>
+          <option value="annual" ${vendor.billing_cycle === 'annual' ? 'selected' : ''}>Annual</option>
+          <option value="one-time" ${vendor.billing_cycle === 'one-time' ? 'selected' : ''}>One-time</option>
+          <option value="free" ${vendor.billing_cycle === 'free' ? 'selected' : ''}>Free</option>
+        </select>
+      </div>
+      
+      <div class="mb-4">
+        <label class="form-label">Owner</label>
+        <input type="text" id="vendor-edit-owner" class="form-input" value="${vendor.owner || ''}" placeholder="Account owner/manager">
+      </div>
+      
+      <div class="mb-4">
+        <label class="form-label">Department</label>
+        <input type="text" id="vendor-edit-department" class="form-input" value="${vendor.department || ''}" placeholder="Engineering, Sales, etc.">
+      </div>
+      
+      <div class="mb-4">
+        <label class="form-label">Login Email</label>
+        <input type="email" id="vendor-edit-login-email" class="form-input" value="${vendor.login_email || ''}" placeholder="login@company.com">
+      </div>
+      
+      <div class="mb-4">
+        <label class="form-label">Status</label>
+        <select id="vendor-edit-status" class="form-select">
+          <option value="active" ${vendor.status === 'active' ? 'selected' : ''}>Active</option>
+          <option value="trial" ${vendor.status === 'trial' ? 'selected' : ''}>Trial</option>
+          <option value="pending-approval" ${vendor.status === 'pending-approval' ? 'selected' : ''}>Pending Approval</option>
+          <option value="suspended" ${vendor.status === 'suspended' ? 'selected' : ''}>Suspended</option>
+          <option value="cancelled" ${vendor.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+        </select>
+      </div>
+      
+      <div class="mb-4">
+        <label class="form-label">Users (JSON Array)</label>
+        <textarea id="vendor-edit-users" class="form-textarea" rows="3" placeholder='["user1@company.com", "user2@company.com"]'>${JSON.stringify(vendor.users) || '[]'}</textarea>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Enter as JSON array, e.g., ["user1@company.com", "user2@company.com"]</div>
+      </div>
+      
+      <div class="mb-4">
+        <label class="form-label">Renewal Date</label>
+        <input type="date" id="vendor-edit-renewal-date" class="form-input" value="${vendor.renewal_date || ''}">
+      </div>
+      
+      <div class="mb-6">
+        <label class="form-label">Notes</label>
+        <textarea id="vendor-edit-notes" class="form-textarea" rows="3" placeholder="Additional notes...">${vendor.notes || ''}</textarea>
+      </div>
+      
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <button type="button" onclick="deleteVendor(${vendor.id})" class="btn-delete">🗑️ Delete</button>
+        <div>
+          <button type="submit" class="btn-save">💾 Save Changes</button>
+        </div>
+      </div>
+      
+      <div id="vendor-edit-error" style="margin-top:12px;padding:8px;background:#1a1111;border:1px solid #ef4444;border-radius:8px;color:#ef4444;font-size:12px;display:none;"></div>
+    </form>
+  `;
+  
+  document.getElementById('vendor-panel').classList.add('open');
+}
+
+function closeVendorPanel() {
+  document.getElementById('vendor-panel').classList.remove('open');
+}
+
+async function saveVendor(id, event) {
+  event.preventDefault();
+  
+  const errorDiv = document.getElementById('vendor-edit-error');
+  errorDiv.style.display = 'none';
+  
+  try {
+    const name = document.getElementById('vendor-edit-name').value.trim();
+    const category = document.getElementById('vendor-edit-category').value;
+    
+    // Validate required fields
+    if (!name) {
+      throw new Error('Vendor name is required');
+    }
+    if (!category) {
+      throw new Error('Category is required');
+    }
+    
+    // Parse users JSON
+    let users = [];
+    const usersText = document.getElementById('vendor-edit-users').value.trim();
+    if (usersText) {
+      try {
+        users = JSON.parse(usersText);
+        if (!Array.isArray(users)) {
+          throw new Error('Users must be an array');
+        }
+      } catch (e) {
+        throw new Error('Users field must be valid JSON array');
+      }
+    }
+    
+    // Build update data
+    const vendorData = {
+      name,
+      category,
+      url: document.getElementById('vendor-edit-url').value.trim() || null,
+      plan: document.getElementById('vendor-edit-plan').value.trim() || null,
+      cost_monthly: document.getElementById('vendor-edit-cost-monthly').value || null,
+      cost_annual: document.getElementById('vendor-edit-cost-annual').value || null,
+      billing_cycle: document.getElementById('vendor-edit-billing-cycle').value,
+      owner: document.getElementById('vendor-edit-owner').value.trim() || null,
+      department: document.getElementById('vendor-edit-department').value.trim() || null,
+      login_email: document.getElementById('vendor-edit-login-email').value.trim() || null,
+      status: document.getElementById('vendor-edit-status').value,
+      users,
+      renewal_date: document.getElementById('vendor-edit-renewal-date').value || null,
+      notes: document.getElementById('vendor-edit-notes').value.trim() || null
+    };
+    
+    // PATCH to API endpoint
+    const response = await fetch(`/api/vendors/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(vendorData)
+    });
+    
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || 'Failed to update vendor');
+    }
+    
+    // Success - close panel and refresh table
+    closeVendorPanel();
+    await loadVendors();
+    
+  } catch (error) {
+    errorDiv.textContent = error.message;
+    errorDiv.style.display = 'block';
+  }
+}
+
+async function deleteVendor(id) {
+  if (!confirm('Are you sure you want to delete this vendor? This will set its status to cancelled.')) {
+    return;
+  }
+  
+  const errorDiv = document.getElementById('vendor-edit-error');
+  errorDiv.style.display = 'none';
+  
+  try {
+    const response = await fetch(`/api/vendors/${id}`, {
+      method: 'DELETE'
+    });
+    
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || 'Failed to delete vendor');
+    }
+    
+    // Success - close panel and refresh table
+    closeVendorPanel();
+    await loadVendors();
+    
+  } catch (error) {
+    errorDiv.textContent = error.message;
+    errorDiv.style.display = 'block';
+  }
 }
 
 function openVendorModal(id) {

@@ -29,6 +29,7 @@ Started: 2026-02-17 18:12 UTC
 - **Sortable table headers**: Add cursor-pointer, hover:bg-[color] transitions, and onclick="sortTableFunction(column)"
 - **Table colspan consistency**: Empty/loading states must match actual column count for proper layout
 - **Badge styling pattern**: Use base class + modifier pattern (e.g., vendor-status-badge vendor-status-active), 12px border-radius, rgba background with 0.2 opacity, contrasting text colors, consistent font-size:11px and padding:4px 8px
+- **Modal form pattern**: Structure: fixed inset-0 modal-overlay > modal-content p-6 > header with close button + form with submit handler. Use openXModal()/closeXModal() functions, clear form fields on open, preventDefault on form submit, handle errors in dedicated error element, refresh data after successful operations
 
 ---
 
@@ -262,5 +263,68 @@ Files changed:
 Tests: All acceptance criteria verified - 11/11 tests pass
 Status badges display with correct colors, department styling applied
 Rounded badge styling consistent with existing UI
+Typecheck passes
+---
+
+## 2026-02-17 19:32 - US-009: Add filter bar and search to vendors page
+- Added search input to filter bar for vendor name filtering (case insensitive)
+- Updated backend API to support ?search query parameter for filtering by vendor name
+- Added /api/vendors/departments endpoint to dynamically populate department dropdown from actual data
+- Modified all filter dropdowns to call updateFiltersAndLoad() function instead of loadVendors() directly
+- Implemented updateFiltersAndLoad() function that updates URL query parameters and then loads vendors
+- Added loadFiltersFromURL() function to read URL parameters and set filter values when navigating to vendors page
+- Updated loadVendors() function to include search parameter and load departments dynamically
+- Added loadDepartments() function to populate department dropdown from API data
+- Filter bar now has 4 controls: status, category, department dropdowns + search input
+- Multiple filters work together with AND logic (status + department + category + search)
+- URL automatically updates with filter parameters (?status=active&department=Sales&search=text)
+- Created comprehensive test suite covering all 9 acceptance criteria
+- **Learnings:**
+  - Search filtering should be case insensitive and applied after other filters on backend
+  - Dynamic dropdown population prevents hardcoded department lists from getting stale
+  - URL parameter management requires both reading from URL on page load and updating on filter changes
+  - Test environment requires adding options to dropdowns before setting their values
+  - Filter functions should update URL first, then trigger data loading for better UX
+
+Files changed:
+- app/server.js (added search parameter to /api/vendors, added /api/vendors/departments endpoint)
+- app/public/index.html (added search input, updated filter functions, added URL parameter management)
+- app/test-vendors-filtering.js (comprehensive test coverage with 9 test cases)
+- app/package.json (added new test file to test script)
+
+Tests: All acceptance criteria verified - 9/9 tests pass
+Filter bar displays with 4 controls, search works case-insensitive, URL parameters update correctly
+Multiple filters work together with AND logic, department dropdown populated from API
+Typecheck passes
+---
+
+## 2026-02-17 19:42 - US-010: Create 'Add Vendor' modal form
+- Implemented complete "Add Vendor" modal form with all vendor fields following existing modal patterns
+- Modal opens from existing "Add Vendor" button in vendors section header (button was placeholder, now functional)
+- Form includes all vendor fields: name*, category*, url, plan, costs (monthly/annual), billing cycle, owner, department, status, login email, users (JSON array), renewal date, notes
+- Required field validation for name and category with clear error messaging
+- Form dropdowns populated with all valid enum values from database schema constraints
+- Users field accepts JSON array input with validation and helpful placeholder/instructions
+- Form submits to existing POST /api/vendors endpoint with proper error handling
+- Successful submission closes modal and refreshes vendors table automatically
+- Form validation handles edge cases including JSON parsing for users field
+- Modal follows existing styling patterns: modal-overlay, modal-content, form-input, form-label, btn-primary/secondary classes
+- Created comprehensive test suite in test-add-vendor-modal.js covering all 10 acceptance criteria
+- **Learnings:**
+  - Modal patterns: Use modal-overlay + modal-content structure with onclick handlers for close functionality
+  - Form validation: Client-side validation for required fields, JSON parsing validation for array fields
+  - Error handling: Display errors in designated error element, clear errors on successful operations
+  - API integration: POST requests with JSON body, proper Content-Type headers, response handling
+  - UI refresh: Call existing loadVendors() function after successful creation to update table
+  - Form clearing: Reset all form fields when opening modal to ensure clean state
+
+Files changed:
+- app/public/index.html (replaced openVendorModal() stub with full implementation, added modal HTML structure)
+- app/test-add-vendor-modal.js (comprehensive test coverage with 10 test cases)
+- app/package.json (added new test file to test script)
+
+Tests: All acceptance criteria verified - 11/11 tests pass
+Modal form displays with all vendor fields, validates required fields, submits to API, refreshes table on success
+Form follows existing styling patterns and modal conventions
 Typecheck passes
 ---
