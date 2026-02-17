@@ -62,3 +62,15 @@ Started: 2026-02-17T15:22:00Z
 - **Learnings:** Test integration is crucial - tests must be included in the main test command to satisfy acceptance criteria. Individual test files passing doesn't meet requirements if they're not part of the main test suite.
 
 ---
+
+## 2026-02-17T16:12:00Z - US-004: Add Page Load URL Detection
+- Implemented initializeFromURL() function to detect and route to correct page on initial load
+- Added explicit handling for default route (/) to show dashboard section
+- Enhanced URL detection logic to read window.location.pathname and determine initial page
+- Integrated with existing section initialization logic through navigateToRoute() 
+- Created comprehensive test suite (test-url-detection.js) with 10 tests covering all acceptance criteria
+- Updated existing test references to use new function name (initializeFromURL vs initializeRouting)
+- Files changed: app/public/index.html, app/test-url-detection.js, app/test-url-routing.js, app/package.json
+- **Learnings:** Function naming in specifications matters - story explicitly requested initializeFromURL() rather than generic initializeRouting(). Default route (/) handling needs explicit checking rather than relying on fallthrough logic. Test coverage should directly match acceptance criteria for clear validation.
+
+---
