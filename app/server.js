@@ -293,7 +293,7 @@ app.post('/api/kpis/sync', (req, res) => {
 
 // ─── Vendors API ────────────────────────────────────────────────
 app.get('/api/vendors', (req, res) => {
-  const { status, department, category } = req.query;
+  const { status, department, category, search } = req.query;
   let vendors;
   
   // Apply filters using appropriate prepared statements
@@ -322,6 +322,12 @@ app.get('/api/vendors', (req, res) => {
     vendors = stmts.getVendorsByCategory.all(category);
   } else {
     vendors = stmts.getAllVendors.all();
+  }
+  
+  // Apply search filter if provided (case insensitive)
+  if (search && search.trim()) {
+    const searchTerm = search.trim().toLowerCase();
+    vendors = vendors.filter(v => v.name.toLowerCase().includes(searchTerm));
   }
   
   // Parse JSON users array for each vendor
@@ -485,6 +491,13 @@ app.get('/api/vendors/summary', (req, res) => {
   
   logActivity('view', 'vendors_summary', null, 'Vendors summary accessed', 'user');
   res.json(summary);
+});
+
+// Get unique departments from vendors data  
+app.get('/api/vendors/departments', (req, res) => {
+  const vendors = stmts.getAllVendors.all();
+  const departments = [...new Set(vendors.map(v => v.department).filter(Boolean))].sort();
+  res.json(departments);
 });
 
 // ─── Action Items API ───────────────────────────────────────────

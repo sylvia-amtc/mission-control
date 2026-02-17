@@ -1015,7 +1015,7 @@
 
       <!-- Filters -->
       <div class="flex gap-2 mb-4 flex-wrap">
-        <select id="vendor-status-filter" class="form-input text-xs" style="width:auto;padding:6px 12px;" onchange="loadVendors()">
+        <select id="vendor-status-filter" class="form-input text-xs" style="width:auto;padding:6px 12px;" onchange="updateFiltersAndLoad()">
           <option value="">All Statuses</option>
           <option value="active">Active</option>
           <option value="trial">Trial</option>
@@ -1023,7 +1023,7 @@
           <option value="suspended">Suspended</option>
           <option value="cancelled">Cancelled</option>
         </select>
-        <select id="vendor-category-filter" class="form-input text-xs" style="width:auto;padding:6px 12px;" onchange="loadVendors()">
+        <select id="vendor-category-filter" class="form-input text-xs" style="width:auto;padding:6px 12px;" onchange="updateFiltersAndLoad()">
           <option value="">All Categories</option>
           <option value="lead-gen">Lead Generation</option>
           <option value="design">Design</option>
@@ -1033,14 +1033,11 @@
           <option value="communication">Communication</option>
           <option value="other">Other</option>
         </select>
-        <select id="vendor-department-filter" class="form-input text-xs" style="width:auto;padding:6px 12px;" onchange="loadVendors()">
+        <select id="vendor-department-filter" class="form-input text-xs" style="width:auto;padding:6px 12px;" onchange="updateFiltersAndLoad()">
           <option value="">All Departments</option>
-          <option value="Engineering">Engineering</option>
-          <option value="Marketing">Marketing</option>
-          <option value="Sales">Sales</option>
-          <option value="Operations">Operations</option>
-          <option value="Research">Research</option>
+          <!-- Populated dynamically from API -->
         </select>
+        <input type="text" id="vendor-search-input" class="form-input text-xs" style="width:200px;padding:6px 12px;" placeholder="Search vendors..." onkeyup="updateFiltersAndLoad()">
       </div>
 
       <!-- Vendors Table -->
@@ -3061,7 +3058,10 @@ function navigateToRoute(path, pushState = true) {
   // Handle special section logic
   if (section === 'sync') renderSyncStatus();
   if (section === 'org') loadOrgData();
-  if (section === 'vendors') loadVendors();
+  if (section === 'vendors') {
+    loadFiltersFromURL();
+    loadVendors();
+  }
   
   // Parse query parameters for actions page
   if (section === 'actions' && !actionId) {
@@ -3622,16 +3622,24 @@ async function loadVendors() {
     document.getElementById('vendor-count-trial').textContent = summaryData.count_by_status?.trial || 0;
     document.getElementById('vendor-monthly-spend').textContent = summaryData.total_monthly_spend ? `$${(summaryData.total_monthly_spend).toLocaleString()}` : '$0';
 
+    // Load departments for dropdown (only once)
+    if (!window.departmentsLoaded) {
+      await loadDepartments();
+      window.departmentsLoaded = true;
+    }
+
     // Build query parameters from filters
     const statusFilter = document.getElementById('vendor-status-filter')?.value || '';
     const categoryFilter = document.getElementById('vendor-category-filter')?.value || '';
     const departmentFilter = document.getElementById('vendor-department-filter')?.value || '';
+    const searchFilter = document.getElementById('vendor-search-input')?.value || '';
     
     let url = '/api/vendors';
     const params = [];
     if (statusFilter) params.push(`status=${statusFilter}`);
     if (categoryFilter) params.push(`category=${categoryFilter}`);
     if (departmentFilter) params.push(`department=${departmentFilter}`);
+    if (searchFilter) params.push(`search=${encodeURIComponent(searchFilter)}`);
     if (params.length) url += '?' + params.join('&');
 
     // Get filtered vendors
@@ -3642,8 +3650,63 @@ async function loadVendors() {
     document.getElementById('vendor-sync-time').textContent = `Updated ${new Date().toLocaleTimeString()}`;
   } catch (e) {
     console.error('Failed to load vendors:', e);
-    document.getElementById('vendors-table-body').innerHTML = '<tr><td colspan="8" class="px-5 py-8 text-center text-red-400">Error loading vendors</td></tr>';
+    document.getElementById('vendors-table-body').innerHTML = '<tr><td colspan="7" class="px-5 py-8 text-center text-red-400">Error loading vendors</td></tr>';
   }
+}
+
+async function loadDepartments() {
+  try {
+    const departments = await api('/api/vendors/departments');
+    const departmentFilter = document.getElementById('vendor-department-filter');
+    
+    // Clear existing options except "All Departments"
+    departmentFilter.innerHTML = '<option value="">All Departments</option>';
+    
+    // Add departments from API
+    departments.forEach(dept => {
+      const option = document.createElement('option');
+      option.value = dept;
+      option.textContent = dept;
+      departmentFilter.appendChild(option);
+    });
+  } catch (e) {
+    console.error('Failed to load departments:', e);
+  }
+}
+
+function updateFiltersAndLoad() {
+  // Update URL parameters
+  const statusFilter = document.getElementById('vendor-status-filter')?.value || '';
+  const categoryFilter = document.getElementById('vendor-category-filter')?.value || '';
+  const departmentFilter = document.getElementById('vendor-department-filter')?.value || '';
+  const searchFilter = document.getElementById('vendor-search-input')?.value || '';
+  
+  const params = new URLSearchParams();
+  if (statusFilter) params.set('status', statusFilter);
+  if (categoryFilter) params.set('category', categoryFilter);
+  if (departmentFilter) params.set('department', departmentFilter);
+  if (searchFilter) params.set('search', searchFilter);
+  
+  const newUrl = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
+  window.history.replaceState({}, '', newUrl);
+  
+  // Load vendors with new filters
+  loadVendors();
+}
+
+function loadFiltersFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  
+  // Set filter values from URL parameters
+  const statusFilter = document.getElementById('vendor-status-filter');
+  const categoryFilter = document.getElementById('vendor-category-filter');
+  const departmentFilter = document.getElementById('vendor-department-filter');
+  const searchInput = document.getElementById('vendor-search-input');
+  
+  if (statusFilter && params.get('status')) statusFilter.value = params.get('status');
+  if (categoryFilter && params.get('category')) categoryFilter.value = params.get('category');
+  if (departmentFilter && params.get('department')) departmentFilter.value = params.get('department');
+  if (searchInput && params.get('search')) searchInput.value = params.get('search');
 }
 
 function renderVendorsTable() {

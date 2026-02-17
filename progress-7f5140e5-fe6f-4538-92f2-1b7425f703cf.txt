@@ -28,6 +28,7 @@ Started: 2026-02-17 18:12 UTC
 - **Currency formatting**: Use parseFloat().toFixed(2) for consistent $X.XX display in UI
 - **Sortable table headers**: Add cursor-pointer, hover:bg-[color] transitions, and onclick="sortTableFunction(column)"
 - **Table colspan consistency**: Empty/loading states must match actual column count for proper layout
+- **Badge styling pattern**: Use base class + modifier pattern (e.g., vendor-status-badge vendor-status-active), 12px border-radius, rgba background with 0.2 opacity, contrasting text colors, consistent font-size:11px and padding:4px 8px
 
 ---
 
@@ -232,5 +233,34 @@ Files changed:
 
 Tests: All acceptance criteria verified - 12/12 tests pass
 Table displays 7 columns with sortable headers and proper currency formatting
+Typecheck passes
+---
+
+## 2026-02-17 19:22 - US-008: Add vendor status badges and department styling
+- Added CSS classes for vendor status badges with proper colors: green=active, yellow=trial, blue=pending-approval, red=cancelled/suspended
+- Created department badge CSS classes with color coding for Engineering, Marketing, Sales, Operations, Research, Design
+- Updated renderVendorsTable function to use new badge classes instead of inline styles
+- Implemented getStatusBadgeClass() helper function with switch statement for all status values
+- Implemented getDepartmentBadgeClass() helper function with department detection logic
+- Status badges use rounded styling (12px border-radius) consistent with existing badges
+- Department badges follow same styling pattern as status badges for consistency
+- All badges use proper background opacity (0.2) and contrasting text colors
+- Created comprehensive test suite covering all 7 acceptance criteria
+- Badge styling matches existing status badges in other views for consistency
+- **Learnings:**
+  - Badge CSS classes should follow consistent pattern: base class + specific modifier
+  - Status badge colors: active=#22c55e (green), trial=#eab308 (yellow), pending-approval=#3b82f6 (blue), cancelled/suspended=#ef4444 (red)
+  - Department color coding uses brand-consistent colors from existing dept-* classes
+  - Helper functions inside renderVendorsTable allow for clean logic separation
+  - Test isolation important - avoid executing full JavaScript due to DOM dependencies
+
+Files changed:
+- app/public/index.html (added badge CSS classes, updated renderVendorsTable function with helper functions)
+- app/test-vendors-badges.js (comprehensive test coverage with 11 test cases)
+- app/package.json (added new test file to test script)
+
+Tests: All acceptance criteria verified - 11/11 tests pass
+Status badges display with correct colors, department styling applied
+Rounded badge styling consistent with existing UI
 Typecheck passes
 ---
