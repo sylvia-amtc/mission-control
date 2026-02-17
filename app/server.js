@@ -438,6 +438,55 @@ app.delete('/api/vendors/:id', (req, res) => {
   res.json(vendor);
 });
 
+// ─── Vendors Summary API ────────────────────────────────────────
+app.get('/api/vendors/summary', (req, res) => {
+  const vendors = stmts.getAllVendors.all();
+  
+  // Handle empty database gracefully
+  if (!vendors || vendors.length === 0) {
+    return res.json({
+      total_monthly_spend: 0,
+      count_by_status: {},
+      count_by_department: {},
+      active_count: 0,
+      trial_count: 0
+    });
+  }
+  
+  // Calculate total monthly spend for active vendors only
+  const total_monthly_spend = vendors
+    .filter(v => v.status === 'active')
+    .reduce((sum, v) => sum + (v.cost_monthly || 0), 0);
+  
+  // Calculate count by status
+  const count_by_status = {};
+  vendors.forEach(v => {
+    count_by_status[v.status] = (count_by_status[v.status] || 0) + 1;
+  });
+  
+  // Calculate count by department
+  const count_by_department = {};
+  vendors.forEach(v => {
+    const dept = v.department || 'Unassigned';
+    count_by_department[dept] = (count_by_department[dept] || 0) + 1;
+  });
+  
+  // Calculate specific counts
+  const active_count = vendors.filter(v => v.status === 'active').length;
+  const trial_count = vendors.filter(v => v.status === 'trial').length;
+  
+  const summary = {
+    total_monthly_spend,
+    count_by_status,
+    count_by_department,
+    active_count,
+    trial_count
+  };
+  
+  logActivity('view', 'vendors_summary', null, 'Vendors summary accessed', 'user');
+  res.json(summary);
+});
+
 // ─── Action Items API ───────────────────────────────────────────
 app.get('/api/actions', (req, res) => {
   const { status, severity, requester, search, page, limit } = req.query;
