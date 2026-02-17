@@ -3837,9 +3837,127 @@ function openVendorDetail(id) {
 }
 
 function openVendorModal(id) {
-  // This would open a vendor edit modal
-  // For now, just show an alert
-  alert(`Vendor management coming soon! ID: ${id || 'new'}`);
+  const modal = document.getElementById('add-vendor-modal');
+  modal.classList.remove('hidden');
+  
+  // Clear form fields
+  document.getElementById('add-vendor-name').value = '';
+  document.getElementById('add-vendor-category').value = '';
+  document.getElementById('add-vendor-url').value = '';
+  document.getElementById('add-vendor-plan').value = '';
+  document.getElementById('add-vendor-cost-monthly').value = '';
+  document.getElementById('add-vendor-cost-annual').value = '';
+  document.getElementById('add-vendor-billing-cycle').value = 'monthly';
+  document.getElementById('add-vendor-owner').value = '';
+  document.getElementById('add-vendor-department').value = '';
+  document.getElementById('add-vendor-login-email').value = '';
+  document.getElementById('add-vendor-status').value = 'active';
+  document.getElementById('add-vendor-users').value = '';
+  document.getElementById('add-vendor-renewal-date').value = '';
+  document.getElementById('add-vendor-notes').value = '';
+  
+  // Clear error message
+  document.getElementById('add-vendor-error').classList.add('hidden');
+}
+
+function closeAddVendorModal() {
+  document.getElementById('add-vendor-modal').classList.add('hidden');
+}
+
+async function submitAddVendor(event) {
+  event.preventDefault();
+  
+  const name = document.getElementById('add-vendor-name').value.trim();
+  const category = document.getElementById('add-vendor-category').value;
+  const url = document.getElementById('add-vendor-url').value.trim();
+  const plan = document.getElementById('add-vendor-plan').value.trim();
+  const costMonthly = document.getElementById('add-vendor-cost-monthly').value;
+  const costAnnual = document.getElementById('add-vendor-cost-annual').value;
+  const billingCycle = document.getElementById('add-vendor-billing-cycle').value;
+  const owner = document.getElementById('add-vendor-owner').value.trim();
+  const department = document.getElementById('add-vendor-department').value.trim();
+  const loginEmail = document.getElementById('add-vendor-login-email').value.trim();
+  const status = document.getElementById('add-vendor-status').value;
+  const usersInput = document.getElementById('add-vendor-users').value.trim();
+  const renewalDate = document.getElementById('add-vendor-renewal-date').value;
+  const notes = document.getElementById('add-vendor-notes').value.trim();
+  
+  const errorEl = document.getElementById('add-vendor-error');
+  
+  // Validate required fields
+  if (!name) {
+    errorEl.textContent = 'Vendor name is required.';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+  
+  if (!category) {
+    errorEl.textContent = 'Category is required.';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+  
+  // Validate users JSON format
+  let users = [];
+  if (usersInput) {
+    try {
+      users = JSON.parse(usersInput);
+      if (!Array.isArray(users)) {
+        throw new Error('Users must be an array');
+      }
+    } catch (e) {
+      errorEl.textContent = 'Users field must be valid JSON array format: ["Name1", "Name2"]';
+      errorEl.classList.remove('hidden');
+      return;
+    }
+  }
+  
+  // Clear error
+  errorEl.classList.add('hidden');
+  
+  try {
+    const vendorData = {
+      name,
+      category,
+      url,
+      plan,
+      cost_monthly: costMonthly ? parseFloat(costMonthly) : 0,
+      cost_annual: costAnnual ? parseFloat(costAnnual) : null,
+      billing_cycle: billingCycle,
+      owner,
+      department,
+      status,
+      login_email: loginEmail,
+      notes,
+      renewal_date: renewalDate || null,
+      users,
+      actor: 'user' // For activity logging
+    };
+    
+    const response = await fetch('/api/vendors', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(vendorData)
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      errorEl.textContent = error.error || 'Failed to create vendor';
+      errorEl.classList.remove('hidden');
+      return;
+    }
+    
+    // Success - close modal and refresh table
+    closeAddVendorModal();
+    await loadVendors(); // Refresh the vendors table
+    
+  } catch (error) {
+    console.error('Error creating vendor:', error);
+    errorEl.textContent = 'Failed to create vendor. Please try again.';
+    errorEl.classList.remove('hidden');
+  }
 }
 
 async function syncVendors() {
@@ -3861,5 +3979,119 @@ loadAll().then(() => {
 });
 setInterval(incrementalRefresh, 30000);
 </script>
+
+<!-- Add Vendor Modal -->
+<div id="add-vendor-modal" class="fixed inset-0 modal-overlay z-50 flex items-center justify-center hidden">
+  <div class="modal-content p-6" style="max-width:600px;">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-bold">Add New Vendor</h3>
+      <button onclick="closeAddVendorModal()" class="text-[#94a3b8] hover:text-white text-xl">&times;</button>
+    </div>
+    <form onsubmit="submitAddVendor(event)">
+      <div class="grid grid-cols-2 gap-4 mb-3">
+        <div>
+          <label class="form-label">Vendor Name <span class="text-red-400">*</span></label>
+          <input type="text" id="add-vendor-name" class="form-input" placeholder="e.g., Figma, Slack, Google Workspace" required>
+        </div>
+        <div>
+          <label class="form-label">Category <span class="text-red-400">*</span></label>
+          <select id="add-vendor-category" class="form-input" required>
+            <option value="">Select Category</option>
+            <option value="lead-gen">Lead Generation</option>
+            <option value="design">Design</option>
+            <option value="infrastructure">Infrastructure</option>
+            <option value="analytics">Analytics</option>
+            <option value="social">Social</option>
+            <option value="communication">Communication</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-2 gap-4 mb-3">
+        <div>
+          <label class="form-label">Website URL</label>
+          <input type="url" id="add-vendor-url" class="form-input" placeholder="https://example.com">
+        </div>
+        <div>
+          <label class="form-label">Plan/Tier</label>
+          <input type="text" id="add-vendor-plan" class="form-input" placeholder="e.g., Professional, Free, Enterprise">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-4 mb-3">
+        <div>
+          <label class="form-label">Monthly Cost ($)</label>
+          <input type="number" id="add-vendor-cost-monthly" class="form-input" placeholder="0" min="0" step="0.01">
+        </div>
+        <div>
+          <label class="form-label">Annual Cost ($)</label>
+          <input type="number" id="add-vendor-cost-annual" class="form-input" placeholder="Optional" min="0" step="0.01">
+        </div>
+        <div>
+          <label class="form-label">Billing Cycle</label>
+          <select id="add-vendor-billing-cycle" class="form-input">
+            <option value="monthly">Monthly</option>
+            <option value="annual">Annual</option>
+            <option value="one-time">One-time</option>
+            <option value="free">Free</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 mb-3">
+        <div>
+          <label class="form-label">Owner</label>
+          <input type="text" id="add-vendor-owner" class="form-input" placeholder="Person responsible">
+        </div>
+        <div>
+          <label class="form-label">Department</label>
+          <input type="text" id="add-vendor-department" class="form-input" placeholder="e.g., Engineering, Marketing">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 mb-3">
+        <div>
+          <label class="form-label">Login Email</label>
+          <input type="email" id="add-vendor-login-email" class="form-input" placeholder="Account email">
+        </div>
+        <div>
+          <label class="form-label">Status</label>
+          <select id="add-vendor-status" class="form-input">
+            <option value="active">Active</option>
+            <option value="trial">Trial</option>
+            <option value="pending-approval">Pending Approval</option>
+            <option value="suspended">Suspended</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Users <span class="text-xs text-[#64748b]">(JSON array format)</span></label>
+        <input type="text" id="add-vendor-users" class="form-input" placeholder='["John Doe", "Jane Smith"]'>
+        <div class="text-xs text-[#64748b] mt-1">Enter as JSON array: ["Name1", "Name2"] or leave empty for []</div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Renewal Date</label>
+        <input type="date" id="add-vendor-renewal-date" class="form-input">
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label">Notes</label>
+        <textarea id="add-vendor-notes" class="form-input h-20" placeholder="Additional details about this vendor..."></textarea>
+      </div>
+
+      <div id="add-vendor-error" class="text-sm text-red-400 mb-3 hidden"></div>
+      
+      <div class="flex justify-end gap-2">
+        <button type="button" onclick="closeAddVendorModal()" class="btn-secondary">Cancel</button>
+        <button type="submit" class="btn-primary">Add Vendor</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 </body>
 </html>
