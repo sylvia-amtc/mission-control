@@ -334,6 +334,110 @@ app.get('/api/vendors', (req, res) => {
   res.json(vendors);
 });
 
+// ─── Individual Vendor CRUD Endpoints ──────────────────────────
+app.get('/api/vendors/:id', (req, res) => {
+  const vendor = stmts.getVendorById.get(parseInt(req.params.id));
+  if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+  
+  // Parse JSON users array
+  vendor.users = JSON.parse(vendor.users || '[]');
+  
+  logActivity('view', 'vendor', vendor.id, `Vendor viewed: ${vendor.name}`, 'user');
+  res.json(vendor);
+});
+
+app.post('/api/vendors', (req, res) => {
+  // Validate required fields
+  if (!req.body.name) {
+    return res.status(400).json({ error: 'Vendor name is required' });
+  }
+  
+  const v = {
+    name: req.body.name.trim(),
+    category: req.body.category || 'other',
+    url: req.body.url || '',
+    plan: req.body.plan || '',
+    cost_monthly: parseFloat(req.body.cost_monthly) || 0,
+    cost_annual: req.body.cost_annual ? parseFloat(req.body.cost_annual) : null,
+    billing_cycle: req.body.billing_cycle || 'monthly',
+    owner: req.body.owner || '',
+    users: JSON.stringify(req.body.users || []),
+    department: req.body.department || '',
+    status: req.body.status || 'active',
+    login_email: req.body.login_email || '',
+    notes: req.body.notes || '',
+    renewal_date: req.body.renewal_date || null,
+  };
+  
+  const result = stmts.createVendor.run(v);
+  const vendor = stmts.getVendorById.get(result.lastInsertRowid);
+  vendor.users = JSON.parse(vendor.users || '[]');
+  
+  logActivity('create', 'vendor', vendor.id, `Vendor created: ${vendor.name}`, req.body.actor || 'user');
+  res.status(201).json(vendor);
+});
+
+app.patch('/api/vendors/:id', (req, res) => {
+  const existing = stmts.getVendorById.get(parseInt(req.params.id));
+  if (!existing) return res.status(404).json({ error: 'Vendor not found' });
+  
+  const v = {
+    id: parseInt(req.params.id),
+    name: req.body.name !== undefined ? req.body.name.trim() : existing.name,
+    category: req.body.category !== undefined ? req.body.category : existing.category,
+    url: req.body.url !== undefined ? req.body.url : existing.url,
+    plan: req.body.plan !== undefined ? req.body.plan : existing.plan,
+    cost_monthly: req.body.cost_monthly !== undefined ? parseFloat(req.body.cost_monthly) || 0 : existing.cost_monthly,
+    cost_annual: req.body.cost_annual !== undefined ? (req.body.cost_annual ? parseFloat(req.body.cost_annual) : null) : existing.cost_annual,
+    billing_cycle: req.body.billing_cycle !== undefined ? req.body.billing_cycle : existing.billing_cycle,
+    owner: req.body.owner !== undefined ? req.body.owner : existing.owner,
+    users: req.body.users !== undefined ? JSON.stringify(req.body.users) : existing.users,
+    department: req.body.department !== undefined ? req.body.department : existing.department,
+    status: req.body.status !== undefined ? req.body.status : existing.status,
+    login_email: req.body.login_email !== undefined ? req.body.login_email : existing.login_email,
+    notes: req.body.notes !== undefined ? req.body.notes : existing.notes,
+    renewal_date: req.body.renewal_date !== undefined ? req.body.renewal_date : existing.renewal_date,
+  };
+  
+  stmts.updateVendor.run(v);
+  const vendor = stmts.getVendorById.get(req.params.id);
+  vendor.users = JSON.parse(vendor.users || '[]');
+  
+  logActivity('update', 'vendor', vendor.id, `Vendor updated: ${vendor.name}`, req.body.actor || 'user');
+  res.json(vendor);
+});
+
+app.delete('/api/vendors/:id', (req, res) => {
+  const existing = stmts.getVendorById.get(parseInt(req.params.id));
+  if (!existing) return res.status(404).json({ error: 'Vendor not found' });
+  
+  // Soft delete: set status to cancelled
+  const v = {
+    id: parseInt(req.params.id),
+    name: existing.name,
+    category: existing.category,
+    url: existing.url,
+    plan: existing.plan,
+    cost_monthly: existing.cost_monthly,
+    cost_annual: existing.cost_annual,
+    billing_cycle: existing.billing_cycle,
+    owner: existing.owner,
+    users: existing.users,
+    department: existing.department,
+    status: 'cancelled', // Soft delete
+    login_email: existing.login_email,
+    notes: existing.notes,
+    renewal_date: existing.renewal_date,
+  };
+  
+  stmts.updateVendor.run(v);
+  const vendor = stmts.getVendorById.get(req.params.id);
+  vendor.users = JSON.parse(vendor.users || '[]');
+  
+  logActivity('delete', 'vendor', vendor.id, `Vendor cancelled (soft delete): ${vendor.name}`, req.body.actor || 'user');
+  res.json(vendor);
+});
+
 // ─── Action Items API ───────────────────────────────────────────
 app.get('/api/actions', (req, res) => {
   const { status, severity, requester, search, page, limit } = req.query;
