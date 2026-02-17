@@ -23,3 +23,18 @@ Started: 2026-02-17T15:22:00Z
 - **Learnings:** Express 5.x doesn't support wildcard routes (`*`) due to path-to-regexp parser changes; explicit routes work better. Static middleware placement matters - SPA routes must come after API routes but can work fine when properly positioned. File serving with `fs.readFileSync() + res.send()` is more reliable than `res.sendFile()` in this environment.
 
 ---
+
+## 2026-02-17T15:40:00Z - US-002: Create URL-Based Router Infrastructure
+- Implemented URL-based routing infrastructure to replace current navigate() function
+- Added route-to-section mapping for all SPA sections (/dashboard → command, /kanban → kanban, etc.)
+- Created navigateToRoute() function using history.pushState() to update browser URL
+- Added window.onpopstate handler for browser back/forward button support
+- Updated nav items to use proper href attributes and preventDefault click handlers
+- Implemented deep-link support for action items (/actions/123) with auto-expansion and highlighting
+- Preserved backward compatibility by keeping legacy navigate() function
+- Added comprehensive test suite (test-url-routing.js) with 11 tests covering all router functionality
+- Integrated routing initialization on page load to read current URL and show correct section
+- Files changed: public/index.html, test-url-routing.js, package.json
+- **Learnings:** HTML inline JavaScript requires careful History API state management. Deep-link action item handling needs to coordinate with existing action loading and expansion logic. Test suite using JSDOM can effectively verify client-side routing implementation without browser automation.
+
+---

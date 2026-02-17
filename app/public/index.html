@@ -169,23 +169,23 @@
       <p class="text-xs text-[#64748b] mt-1">Amtecco Operations v2</p>
     </div>
     <nav class="flex-1 py-2 overflow-y-auto" id="nav">
-      <a href="#" class="nav-item active" data-section="command">⚡ Command Center</a>
-      <a href="#" class="nav-item" data-section="kanban">📋 Kanban Board</a>
-      <a href="#" class="nav-item" data-section="gantt">📊 Timeline</a>
-      <a href="#" class="nav-item" data-section="pipeline">🔄 CRM Pipeline</a>
-      <a href="#" class="nav-item" data-section="funnel">💰 Revenue Funnel</a>
-      <a href="#" class="nav-item" data-section="departments">🏢 Departments</a>
-      <a href="#" class="nav-item" data-section="kpis">📈 KPIs</a>
-      <a href="#" class="nav-item" data-section="actions">📝 Action Items</a>
-      <a href="#" class="nav-item" data-section="calendar">📱 Social Calendar</a>
-      <a href="#" class="nav-item" data-section="blockers">⚠️ Blockers</a>
-      <a href="#" class="nav-item" data-section="reports">📂 Reports</a>
-      <a href="#" class="nav-item" data-section="priorities">🔥 Priorities</a>
-      <a href="#" class="nav-item" data-section="initiatives">🎯 Initiatives</a>
-      <a href="#" class="nav-item" data-section="reporting">📅 Reporting</a>
-      <a href="#" class="nav-item" data-section="revenue">💹 Revenue Data</a>
-      <a href="#" class="nav-item" data-section="org">🏛 Organization</a>
-      <a href="#" class="nav-item" data-section="sync">🔄 Sync Status</a>
+      <a href="/dashboard" class="nav-item active" data-section="command">⚡ Command Center</a>
+      <a href="/kanban" class="nav-item" data-section="kanban">📋 Kanban Board</a>
+      <a href="/gantt" class="nav-item" data-section="gantt">📊 Timeline</a>
+      <a href="/crm" class="nav-item" data-section="pipeline">🔄 CRM Pipeline</a>
+      <a href="/funnel" class="nav-item" data-section="funnel">💰 Revenue Funnel</a>
+      <a href="/departments" class="nav-item" data-section="departments">🏢 Departments</a>
+      <a href="/kpis" class="nav-item" data-section="kpis">📈 KPIs</a>
+      <a href="/actions" class="nav-item" data-section="actions">📝 Action Items</a>
+      <a href="/calendar" class="nav-item" data-section="calendar">📱 Social Calendar</a>
+      <a href="/blockers" class="nav-item" data-section="blockers">⚠️ Blockers</a>
+      <a href="/reports" class="nav-item" data-section="reports">📂 Reports</a>
+      <a href="/priorities" class="nav-item" data-section="priorities">🔥 Priorities</a>
+      <a href="/initiatives" class="nav-item" data-section="initiatives">🎯 Initiatives</a>
+      <a href="/reporting" class="nav-item" data-section="reporting">📅 Reporting</a>
+      <a href="/revenue" class="nav-item" data-section="revenue">💹 Revenue Data</a>
+      <a href="/org" class="nav-item" data-section="org">🏛 Organization</a>
+      <a href="/sync" class="nav-item" data-section="sync">🔄 Sync Status</a>
     </nav>
     <div class="p-4 border-t border-[#2d3148] text-xs text-[#64748b]">
       <div id="update-time">Loading...</div>
@@ -2134,7 +2134,16 @@ const routeMap = {
   '/calendar': 'calendar',
   '/org': 'org',
   '/sync': 'sync',
-  '/crm': 'pipeline'
+  '/crm': 'pipeline',
+  '/funnel': 'funnel',
+  '/departments': 'departments',
+  '/kpis': 'kpis',
+  '/blockers': 'blockers',
+  '/reports': 'reports',
+  '/priorities': 'priorities',
+  '/initiatives': 'initiatives',
+  '/reporting': 'reporting',
+  '/revenue': 'revenue'
 };
 
 // Section-to-route mapping (reverse lookup)
@@ -2223,14 +2232,11 @@ function navigate(section) {
   navigateToRoute(route);
 }
 
-// Update nav items to use proper URLs and handle clicks
+// Set up nav item click handlers for SPA routing
 document.querySelectorAll('.nav-item').forEach(n => {
-  const section = n.dataset.section;
-  const route = sectionToRoute[section] || '/dashboard';
-  n.href = route;
-  
   n.addEventListener('click', e => {
     e.preventDefault();
+    const route = n.getAttribute('href');
     navigateToRoute(route);
   });
 });

@@ -88,13 +88,21 @@ describe('Client-Side URL Routing Infrastructure', () => {
     // Should have nav items
     assert(navItems.length > 0, 'Should have nav items');
     
-    // Check that nav items setup includes href assignment
-    assert(response.html.includes('n.href = route;'), 
-           'Nav items should have href set to route');
+    // Check that nav items have proper href values in HTML (not set by JavaScript)
+    navItems.forEach(item => {
+      const href = item.getAttribute('href');
+      assert(href, 'Nav item should have href attribute');
+      assert(href !== '#', 'Nav item should not have href="#"');
+      assert(href.startsWith('/'), 'Nav item href should be a proper path');
+    });
+    
+    // Check that nav items have click handlers
     assert(response.html.includes('n.addEventListener(\'click\', e => {'), 
            'Nav items should have click handlers');
     assert(response.html.includes('e.preventDefault();'), 
            'Nav click handlers should prevent default');
+    assert(response.html.includes('const route = n.getAttribute(\'href\');'), 
+           'Nav click handlers should get route from href attribute');
     assert(response.html.includes('navigateToRoute(route);'), 
            'Nav click handlers should call navigateToRoute');
   });
