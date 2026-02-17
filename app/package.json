@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node --test test-routing.js test-url-routing.js test-navigation-links.js test-url-detection.js test-action-deep-linking.js test-action-query-params.js test-kanban-query-params.js test-calendar-crm-query-params.js test-remaining-core-routes.js test-integration.js test-vendors-schema.js"
+    "test": "node --test test-routing.js test-url-routing.js test-navigation-links.js test-url-detection.js test-action-deep-linking.js test-action-query-params.js test-kanban-query-params.js test-calendar-crm-query-params.js test-remaining-core-routes.js test-integration.js test-vendors-schema.js test-vendors-prepared-statements.js"
   },
   "keywords": [],
   "author": "",

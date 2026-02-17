@@ -288,6 +288,159 @@ if (agentCount === 0) {
   seedTx();
 }
 
+// ─── Seed vendor data if empty ─────────────────────────────────
+const vendorCount = db.prepare('SELECT COUNT(*) as c FROM vendors').get().c;
+if (vendorCount === 0) {
+  const seedVendors = [
+    {
+      name: 'Google Workspace',
+      category: 'communication',
+      url: 'https://workspace.google.com',
+      plan: 'Business Standard',
+      cost_monthly: 0,
+      cost_annual: null,
+      billing_cycle: 'free',
+      owner: 'David',
+      users: '["David","Sylvia","Viktor","Nadia","Max","Elena","Zara"]',
+      department: 'Corporate',
+      status: 'active',
+      login_email: 'sylvia@amtc.tv',
+      notes: 'Included in hosting package'
+    },
+    {
+      name: 'Apollo.io',
+      category: 'lead-gen',
+      url: 'https://apollo.io',
+      plan: 'Professional',
+      cost_monthly: 49,
+      cost_annual: null,
+      billing_cycle: 'monthly',
+      owner: 'Elena',
+      users: '["Elena","Petra","Isla"]',
+      department: 'Sales & Business Dev',
+      status: 'pending-approval',
+      login_email: '',
+      notes: 'Lead generation and prospecting'
+    },
+    {
+      name: 'GoLogin',
+      category: 'other',
+      url: 'https://gologin.com',
+      plan: 'Professional',
+      cost_monthly: 49,
+      cost_annual: null,
+      billing_cycle: 'monthly',
+      owner: 'Elena',
+      users: '["Elena","Petra"]',
+      department: 'Sales & Business Dev',
+      status: 'pending-approval',
+      login_email: '',
+      notes: 'Multi-account browser management'
+    },
+    {
+      name: 'Figma',
+      category: 'design',
+      url: 'https://figma.com',
+      plan: 'Professional',
+      cost_monthly: 15,
+      cost_annual: null,
+      billing_cycle: 'monthly',
+      owner: 'Zara',
+      users: '["Zara","Lars","Elias"]',
+      department: 'Design & Brand',
+      status: 'active',
+      login_email: 'sylvia@amtc.tv',
+      notes: 'Design and prototyping tool'
+    },
+    {
+      name: 'LinkedIn Sales Navigator',
+      category: 'lead-gen',
+      url: 'https://linkedin.com/sales',
+      plan: 'Professional',
+      cost_monthly: 80,
+      cost_annual: null,
+      billing_cycle: 'monthly',
+      owner: 'Elena',
+      users: '["Elena","Henrik","Petra","Isla"]',
+      department: 'Sales & Business Dev',
+      status: 'active',
+      login_email: '',
+      notes: 'B2B lead generation and sales'
+    },
+    {
+      name: 'Cloudflare',
+      category: 'infrastructure',
+      url: 'https://cloudflare.com',
+      plan: 'Pro',
+      cost_monthly: 20,
+      cost_annual: null,
+      billing_cycle: 'monthly',
+      owner: 'David',
+      users: '["David","Viktor"]',
+      department: 'Engineering',
+      status: 'active',
+      login_email: 'sylvia@amtc.tv',
+      notes: 'DNS and CDN services'
+    },
+    {
+      name: 'Brave Search API',
+      category: 'infrastructure',
+      url: 'https://brave.com/search/api',
+      plan: 'Free Tier',
+      cost_monthly: 0,
+      cost_annual: null,
+      billing_cycle: 'free',
+      owner: 'Sylvia',
+      users: '["Sylvia","Nadia"]',
+      department: 'Corporate',
+      status: 'active',
+      login_email: 'sylvia@amtc.tv',
+      notes: 'Search API for research'
+    },
+    {
+      name: 'Groq',
+      category: 'infrastructure',
+      url: 'https://groq.com',
+      plan: 'Free Tier',
+      cost_monthly: 0,
+      cost_annual: null,
+      billing_cycle: 'free',
+      owner: 'Sylvia',
+      users: '["Sylvia","Viktor"]',
+      department: 'Corporate',
+      status: 'active',
+      login_email: 'sylvia@amtc.tv',
+      notes: 'AI inference platform'
+    },
+    {
+      name: 'ElevenLabs',
+      category: 'other',
+      url: 'https://elevenlabs.io',
+      plan: 'Starter',
+      cost_monthly: 5,
+      cost_annual: null,
+      billing_cycle: 'monthly',
+      owner: 'Max',
+      users: '["Max","Amelie"]',
+      department: 'Marketing & Content',
+      status: 'active',
+      login_email: 'sylvia@amtc.tv',
+      notes: 'AI voice generation for content'
+    }
+  ];
+
+  const seedVendorStmt = db.prepare(`INSERT OR IGNORE INTO vendors 
+    (name, category, url, plan, cost_monthly, cost_annual, billing_cycle, owner, users, department, status, login_email, notes) 
+    VALUES (@name, @category, @url, @plan, @cost_monthly, @cost_annual, @billing_cycle, @owner, @users, @department, @status, @login_email, @notes)`);
+  
+  const seedVendorTx = db.transaction(() => {
+    for (const vendor of seedVendors) {
+      seedVendorStmt.run(vendor);
+    }
+  });
+  seedVendorTx();
+}
+
 // Prepared statements
 const stmts = {
   // Tasks
@@ -382,13 +535,23 @@ const stmts = {
 
   // Vendors
   getAllVendors: db.prepare('SELECT * FROM vendors ORDER BY name'),
+  getVendorById: db.prepare('SELECT * FROM vendors WHERE id = ?'),
+  createVendor: db.prepare(`INSERT INTO vendors (name, category, url, plan, cost_monthly, cost_annual, billing_cycle, owner, users, department, status, login_email, notes, renewal_date) VALUES (@name, @category, @url, @plan, @cost_monthly, @cost_annual, @billing_cycle, @owner, @users, @department, @status, @login_email, @notes, @renewal_date)`),
+  updateVendor: db.prepare(`UPDATE vendors SET name=@name, category=@category, url=@url, plan=@plan, cost_monthly=@cost_monthly, cost_annual=@cost_annual, billing_cycle=@billing_cycle, owner=@owner, users=@users, department=@department, status=@status, login_email=@login_email, notes=@notes, renewal_date=@renewal_date, updated_at=datetime('now') WHERE id=@id`),
+  deleteVendor: db.prepare('DELETE FROM vendors WHERE id = ?'),
   getVendorsByStatus: db.prepare('SELECT * FROM vendors WHERE status = ? ORDER BY name'),
+  getVendorsByDept: db.prepare('SELECT * FROM vendors WHERE department = ? ORDER BY name'),
+  getVendorSummary: db.prepare(`SELECT 
+    COUNT(*) as total_count,
+    COUNT(CASE WHEN status = 'active' THEN 1 END) as active_count,
+    COUNT(CASE WHEN status = 'pending-approval' THEN 1 END) as pending_count,
+    SUM(CASE WHEN billing_cycle = 'monthly' THEN cost_monthly WHEN billing_cycle = 'annual' THEN cost_annual/12 ELSE 0 END) as total_monthly_cost
+    FROM vendors`),
+  // Legacy aliases for compatibility
   getVendorsByDepartment: db.prepare('SELECT * FROM vendors WHERE department = ? ORDER BY name'),
   getVendorsByCategory: db.prepare('SELECT * FROM vendors WHERE category = ? ORDER BY name'),
   getVendor: db.prepare('SELECT * FROM vendors WHERE id = ?'),
   insertVendor: db.prepare(`INSERT INTO vendors (name, category, url, plan, cost_monthly, cost_annual, billing_cycle, owner, users, department, status, login_email, notes, renewal_date) VALUES (@name, @category, @url, @plan, @cost_monthly, @cost_annual, @billing_cycle, @owner, @users, @department, @status, @login_email, @notes, @renewal_date)`),
-  updateVendor: db.prepare(`UPDATE vendors SET name=@name, category=@category, url=@url, plan=@plan, cost_monthly=@cost_monthly, cost_annual=@cost_annual, billing_cycle=@billing_cycle, owner=@owner, users=@users, department=@department, status=@status, login_email=@login_email, notes=@notes, renewal_date=@renewal_date, updated_at=datetime('now') WHERE id=@id`),
-  deleteVendor: db.prepare('DELETE FROM vendors WHERE id = ?'),
   vendorSummary: db.prepare(`SELECT 
     COUNT(*) as total_count,
     COUNT(CASE WHEN status = 'active' THEN 1 END) as active_count,

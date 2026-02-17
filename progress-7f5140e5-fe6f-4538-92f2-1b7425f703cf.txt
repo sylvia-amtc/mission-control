@@ -1,0 +1,47 @@
+# Progress Log
+Run: 7f5140e5-fe6f-4538-92f2-1b7425f703cf
+Task: Vendor & Account Registry for Mission Control
+Started: 2026-02-17 18:12 UTC
+
+## Codebase Patterns
+- Database uses `better-sqlite3` with WAL mode and foreign keys enabled
+- Schema created with CREATE TABLE IF NOT EXISTS pattern in db.js
+- CHECK constraints used for enum validation (category, billing_cycle, status)
+- Indexes created with CREATE INDEX IF NOT EXISTS pattern for performance
+- Prepared statements defined in stmts object for all database operations
+- Tests use `node:test` framework, run with `npm test` from app/ directory
+- DECIMAL type used for monetary values (cost_monthly, cost_annual)
+- JSON stored as TEXT in users column, parsed with JSON.parse/stringify
+- Timestamps use datetime('now') defaults for created_at/updated_at
+- All database operations go through prepared statements for security
+
+---
+
+## 2026-02-17 18:12 - US-001: Create vendors table schema and migration
+- Created vendors table with all 15 required columns (id, name, category, url, plan, cost_monthly, cost_annual, billing_cycle, owner, users, department, status, login_email, notes, renewal_date, created_at, updated_at)
+- Added CHECK constraints for category ('lead-gen','design','infrastructure','analytics','social','communication','other'), billing_cycle ('monthly','annual','one-time','free'), and status ('active','trial','pending-approval','suspended','cancelled')
+- Created indexes on status, department, and category columns for performance
+- Added prepared statements for all vendor operations (getAllVendors, getVendorsByStatus, insertVendor, updateVendor, etc.)
+- **Learnings:** 
+  - SQLite schema follows pattern of main CREATE TABLE block followed by indexes
+  - Prepared statements are crucial for performance and security
+  - JSON arrays stored as TEXT and parsed/stringified in application code
+  - DECIMAL type works well for monetary values in better-sqlite3
+
+Files changed:
+- app/db.js (added vendors table schema and prepared statements)
+- app/test-vendors-schema.js (comprehensive test coverage)
+- app/package.json (added new test file to test script)
+
+Tests: Created comprehensive test suite covering all acceptance criteria:
+- AC1: vendors table exists with all 15 columns ✅
+- AC2: CHECK constraints enforce valid enum values ✅  
+- AC3: indexes created on status, department, category ✅
+- AC4: created_at/updated_at have datetime('now') defaults ✅
+- AC5: users column stores JSON array ✅
+- AC6: cost_monthly/cost_annual are DECIMAL type ✅
+- AC7: basic vendor operations work correctly ✅
+- AC8: prepared statements work with main database ✅
+
+All tests pass (120/120 passed)
+---
