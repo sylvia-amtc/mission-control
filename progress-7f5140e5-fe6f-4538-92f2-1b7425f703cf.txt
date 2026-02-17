@@ -30,6 +30,7 @@ Started: 2026-02-17 18:12 UTC
 - **Table colspan consistency**: Empty/loading states must match actual column count for proper layout
 - **Badge styling pattern**: Use base class + modifier pattern (e.g., vendor-status-badge vendor-status-active), 12px border-radius, rgba background with 0.2 opacity, contrasting text colors, consistent font-size:11px and padding:4px 8px
 - **Modal form pattern**: Structure: fixed inset-0 modal-overlay > modal-content p-6 > header with close button + form with submit handler. Use openXModal()/closeXModal() functions, clear form fields on open, preventDefault on form submit, handle errors in dedicated error element, refresh data after successful operations
+- **Slide-in panel pattern**: Use position:fixed, right:-420px (hidden), transition:right 0.3s ease, .open class sets right:0. CSS: .panel-name { /* base styles */ } .panel-name.open { right:0; }. Functions: openXPanel(data), closeXPanel(), populate content via innerHTML template literals. Include close button with onclick="closeXPanel()", overflow-y:auto for scrolling
 
 ---
 
@@ -326,5 +327,37 @@ Files changed:
 Tests: All acceptance criteria verified - 11/11 tests pass
 Modal form displays with all vendor fields, validates required fields, submits to API, refreshes table on success
 Form follows existing styling patterns and modal conventions
+Typecheck passes
+---
+
+## 2026-02-17 19:52 - US-011: Create vendor detail/edit slide-in panel
+- Implemented vendor detail/edit slide-in panel that opens when clicking vendor table rows
+- Panel slides in from right following existing org-panel pattern with smooth transitions
+- Display all vendor fields in editable form with proper field types (text, email, select, textarea, date, number)
+- Form pre-populated with current vendor data including JSON users array display
+- Save button PATCHes to /api/vendors/:id endpoint with comprehensive validation
+- Delete button shows confirmation dialog then soft-deletes vendor via DELETE endpoint
+- Panel closes automatically on successful save/delete operations
+- Table refreshes to reflect changes after successful operations
+- Added comprehensive form validation including required fields and JSON parsing for users
+- Error handling displays errors in dedicated error element within panel
+- CSS follows vendor-panel pattern with fixed positioning, slide transitions, and responsive design
+- Created comprehensive test suite covering all 10 acceptance criteria with structural and functional validation
+- **Learnings:**
+  - Slide-in panel pattern: position:fixed, right:-420px (hidden), .open class for right:0, transition:right 0.3s ease
+  - Panel content populated via innerHTML template literals with vendor data interpolation
+  - Form field validation: client-side validation for required fields, JSON.parse() validation for arrays
+  - API integration: PATCH for updates, DELETE for soft deletion, proper error handling with try/catch
+  - Panel state management: classList.add('open')/classList.remove('open') for show/hide
+  - User experience: confirmation dialogs for destructive actions, automatic table refresh after operations
+
+Files changed:
+- app/public/index.html (added vendor-panel CSS, HTML structure, openVendorPanel/closeVendorPanel/saveVendor/deleteVendor functions, replaced openVendorDetail to use panel instead of modal)
+- app/test-vendor-edit-panel.js (comprehensive test coverage with 10 test cases)
+- app/package.json (added new test file to test script)
+
+Tests: All acceptance criteria verified - 10/10 tests pass
+Slide-in panel opens from table rows, displays editable form, handles save/delete operations, follows existing design patterns
+Panel follows org-panel pattern with consistent styling and behavior
 Typecheck passes
 ---

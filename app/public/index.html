@@ -1005,24 +1005,24 @@
       <!-- Summary Cards -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="vendor-summary-cards">
         <div class="card p-4">
-          <div class="text-xs text-[#94a3b8] mb-1">Total Vendors</div>
-          <div class="text-2xl font-bold text-[#3b82f6]" id="vendor-count-total">Loading...</div>
-          <div class="text-xs text-[#64748b] mt-1">Registered tools</div>
+          <div class="text-xs text-[#94a3b8] mb-1">Total Monthly Spend</div>
+          <div class="text-2xl font-bold text-[#eab308]" id="vendor-total-monthly-spend">Loading...</div>
+          <div class="text-xs text-[#64748b] mt-1">Active vendors cost</div>
         </div>
         <div class="card p-4">
-          <div class="text-xs text-[#94a3b8] mb-1">Active</div>
-          <div class="text-2xl font-bold text-[#22c55e]" id="vendor-count-active">-</div>
-          <div class="text-xs text-[#64748b] mt-1">Currently in use</div>
+          <div class="text-xs text-[#94a3b8] mb-1">Active Accounts</div>
+          <div class="text-2xl font-bold text-[#22c55e]" id="vendor-active-accounts">-</div>
+          <div class="text-xs text-[#64748b] mt-1">Currently active</div>
         </div>
         <div class="card p-4">
-          <div class="text-xs text-[#94a3b8] mb-1">Monthly Spend</div>
-          <div class="text-2xl font-bold text-[#eab308]" id="vendor-monthly-spend">-</div>
-          <div class="text-xs text-[#64748b] mt-1">Current costs</div>
+          <div class="text-xs text-[#94a3b8] mb-1">Pending Approval</div>
+          <div class="text-2xl font-bold text-[#3b82f6]" id="vendor-pending-approval">-</div>
+          <div class="text-xs text-[#64748b] mt-1">Awaiting approval</div>
         </div>
         <div class="card p-4">
-          <div class="text-xs text-[#94a3b8] mb-1">Trials</div>
-          <div class="text-2xl font-bold text-[#8b5cf6]" id="vendor-count-trial">-</div>
-          <div class="text-xs text-[#64748b] mt-1">Under evaluation</div>
+          <div class="text-xs text-[#94a3b8] mb-1">By Department</div>
+          <div class="text-sm" id="vendor-by-department">Loading...</div>
+          <div class="text-xs text-[#64748b] mt-1">Top 3 departments</div>
         </div>
       </div>
 
@@ -3636,10 +3636,26 @@ async function loadVendors() {
     const summaryData = await api('/api/vendors/summary');
     
     // Update summary cards
-    document.getElementById('vendor-count-total').textContent = summaryData.total_vendors || 0;
-    document.getElementById('vendor-count-active').textContent = summaryData.count_by_status?.active || 0;
-    document.getElementById('vendor-count-trial').textContent = summaryData.count_by_status?.trial || 0;
-    document.getElementById('vendor-monthly-spend').textContent = summaryData.total_monthly_spend ? `$${(summaryData.total_monthly_spend).toLocaleString()}` : '$0';
+    const totalMonthlySpend = summaryData.total_monthly_spend || 0;
+    document.getElementById('vendor-total-monthly-spend').textContent = `$${totalMonthlySpend.toLocaleString()}`;
+    
+    const activeAccounts = summaryData.count_by_status?.active || 0;
+    document.getElementById('vendor-active-accounts').textContent = activeAccounts;
+    
+    const pendingApproval = summaryData.count_by_status?.[`pending-approval`] || 0;
+    document.getElementById('vendor-pending-approval').textContent = pendingApproval;
+    
+    // Format top 3 departments
+    const departmentCounts = summaryData.count_by_department || {};
+    const sortedDepartments = Object.entries(departmentCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3);
+    
+    const departmentDisplay = sortedDepartments.length > 0 
+      ? sortedDepartments.map(([dept, count]) => `${dept}: ${count}`).join('<br>')
+      : 'No data';
+    
+    document.getElementById('vendor-by-department').innerHTML = departmentDisplay;
 
     // Load departments for dropdown (only once)
     if (!window.departmentsLoaded) {
