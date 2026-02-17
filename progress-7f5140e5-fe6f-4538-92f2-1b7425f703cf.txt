@@ -398,3 +398,34 @@ Tests: All acceptance criteria verified - 5/5 tests pass
 - AC8: Tests for vendor summary cards pass ✅
 - AC9: Typecheck passes ✅
 ---
+
+## 2026-02-17 20:12 - US-013: Add cost breakdown visualization
+- Added cost breakdown section below summary cards showing monthly spend by department
+- Implemented Chart.js doughnut chart with all active vendors displayed by department
+- Added department color mapping consistent with existing department styling (Engineering=blue, Marketing=cyan, Sales=green, Operations=gray, Research=purple, Design=pink)
+- Chart automatically excludes departments with $0 spend and shows only active vendors
+- Implemented responsive chart with proper legend showing department names and amounts
+- Chart updates automatically when vendor data changes through existing loadVendors() integration
+- Added comprehensive error handling and empty data fallback messaging
+- Chart includes detailed tooltips with percentage breakdown
+- Added chart instance management to prevent memory leaks on updates
+- Created comprehensive test suite (test-cost-breakdown-chart.js) with 12 test cases covering all acceptance criteria
+- All 12 tests pass, covering chart positioning, structure, functionality, colors, legends, tooltips, error handling, and integration
+- Chart uses consistent Inter font family and app color scheme (#1a1d2e backgrounds, #e2e8f0 text)
+- **Learnings:**
+  - Chart.js doughnut charts work well for departmental cost visualization 
+  - Global chart instance variables needed to prevent memory leaks when updating charts
+  - Always fetch fresh active vendor data for cost breakdown rather than using filtered results
+  - Async chart rendering functions handle API calls better than sync calculations from cached data
+  - CSS positioning for chart containers (width:400px;height:300px) ensures consistent sizing
+  - Legend customization with generateLabels callback allows for enhanced display with amounts
+  - Error handling on canvas includes both try-catch blocks and empty data messaging
+
+Files changed:
+- app/public/index.html (added cost breakdown section HTML, renderCostBreakdownChart function, integrated with loadVendors)
+- app/test-cost-breakdown-chart.js (comprehensive test suite with 12 acceptance criteria tests)  
+- app/package.json (added new test file to test script)
+
+Tests: All 12 acceptance criteria verified - cost breakdown chart displays with proper positioning, uses Chart.js doughnut visualization, shows department spending with consistent colors, excludes $0 departments, updates with vendor changes, includes proper legend and tooltips, handles errors gracefully
+Typecheck: Passes (node --check server.js)
+---

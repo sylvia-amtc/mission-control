@@ -377,7 +377,130 @@ server.tool('delete_deal', 'Delete a CRM deal',
   async ({ id }) => apiResult(await api('DELETE', `/api/crm/deals/${id}`))
 );
 
-// 9. Organization / Agent Status
+// 9. Vendor Operations
+server.tool('vendor_list', 'List vendors with optional filters',
+  { status: z.enum(['active', 'trial', 'pending-approval', 'suspended', 'cancelled']).optional().describe('Filter by status'),
+    department: z.string().optional().describe('Filter by department'),
+    category: z.enum(['lead-gen', 'design', 'infrastructure', 'analytics', 'social', 'communication', 'other']).optional().describe('Filter by category'),
+    limit: z.number().optional().describe('Max results (default 50)') },
+  async ({ status, department, category, limit }) => {
+    let vendors;
+    if (status) vendors = stmts.getVendorsByStatus.all(status);
+    else if (department) vendors = stmts.getVendorsByDept.all(department);
+    else if (category) vendors = stmts.getVendorsByCategory.all(category);
+    else vendors = stmts.getAllVendors.all();
+    
+    // Apply multiple filters if needed
+    if (status && department) vendors = vendors.filter(v => v.department === department);
+    if (status && category) vendors = vendors.filter(v => v.category === category);
+    if (department && category) vendors = vendors.filter(v => v.category === category);
+    if (status && department && category) {
+      vendors = stmts.getAllVendors.all().filter(v => 
+        v.status === status && v.department === department && v.category === category
+      );
+    }
+    
+    vendors = vendors.slice(0, limit || 50);
+    
+    // Parse JSON users arrays
+    vendors.forEach(v => {
+      if (v.users) {
+        try { v.users = JSON.parse(v.users); } catch { v.users = []; }
+      }
+    });
+    
+    return { content: [{ type: 'text', text: JSON.stringify(vendors, null, 2) }] };
+  }
+);
+
+server.tool('vendor_get', 'Get a single vendor by ID',
+  { id: z.number().describe('Vendor ID') },
+  async ({ id }) => {
+    const vendor = stmts.getVendorById.get(id);
+    if (!vendor) return { content: [{ type: 'text', text: 'Vendor not found' }], isError: true };
+    
+    // Parse JSON users array
+    if (vendor.users) {
+      try { vendor.users = JSON.parse(vendor.users); } catch { vendor.users = []; }
+    }
+    
+    return { content: [{ type: 'text', text: JSON.stringify(vendor, null, 2) }] };
+  }
+);
+
+server.tool('vendor_create', 'Create a new vendor record',
+  { name: z.string().describe('Vendor name'),
+    category: z.enum(['lead-gen', 'design', 'infrastructure', 'analytics', 'social', 'communication', 'other']).describe('Vendor category'),
+    url: z.string().optional().describe('Vendor website URL'),
+    plan: z.string().optional().describe('Service plan (free, basic, pro, etc.)'),
+    cost_monthly: z.number().optional().describe('Monthly cost'),
+    cost_annual: z.number().optional().describe('Annual cost'),
+    billing_cycle: z.enum(['monthly', 'annual', 'one-time', 'free']).optional().describe('Billing cycle'),
+    owner: z.string().optional().describe('Account owner'),
+    users: z.array(z.string()).optional().describe('Array of users with access'),
+    department: z.string().optional().describe('Department'),
+    status: z.enum(['active', 'trial', 'pending-approval', 'suspended', 'cancelled']).optional().describe('Vendor status'),
+    login_email: z.string().optional().describe('Login email'),
+    notes: z.string().optional().describe('Notes'),
+    renewal_date: z.string().optional().describe('Renewal date (YYYY-MM-DD)') },
+  async (args) => apiResult(await api('POST', '/api/vendors', args))
+);
+
+server.tool('vendor_update', 'Update an existing vendor record',
+  { id: z.number().describe('Vendor ID'),
+    name: z.string().optional().describe('Vendor name'),
+    category: z.enum(['lead-gen', 'design', 'infrastructure', 'analytics', 'social', 'communication', 'other']).optional().describe('Vendor category'),
+    url: z.string().optional().describe('Vendor website URL'),
+    plan: z.string().optional().describe('Service plan'),
+    cost_monthly: z.number().optional().describe('Monthly cost'),
+    cost_annual: z.number().optional().describe('Annual cost'),
+    billing_cycle: z.enum(['monthly', 'annual', 'one-time', 'free']).optional().describe('Billing cycle'),
+    owner: z.string().optional().describe('Account owner'),
+    users: z.array(z.string()).optional().describe('Array of users with access'),
+    department: z.string().optional().describe('Department'),
+    status: z.enum(['active', 'trial', 'pending-approval', 'suspended', 'cancelled']).optional().describe('Vendor status'),
+    login_email: z.string().optional().describe('Login email'),
+    notes: z.string().optional().describe('Notes'),
+    renewal_date: z.string().optional().describe('Renewal date (YYYY-MM-DD)') },
+  async ({ id, ...body }) => apiResult(await api('PATCH', `/api/vendors/${id}`, body))
+);
+
+server.tool('vendor_summary', 'Get vendor summary with aggregated metrics',
+  {},
+  async () => {
+    const summary = stmts.getVendorSummary.get();
+    const allVendors = stmts.getAllVendors.all();
+    
+    // Count by status
+    const count_by_status = {};
+    const count_by_department = {};
+    
+    allVendors.forEach(v => {
+      count_by_status[v.status] = (count_by_status[v.status] || 0) + 1;
+      count_by_department[v.department || 'Unassigned'] = (count_by_department[v.department || 'Unassigned'] || 0) + 1;
+    });
+    
+    // Calculate monthly spend for active vendors only
+    const activeVendors = allVendors.filter(v => v.status === 'active');
+    const total_monthly_spend = activeVendors.reduce((sum, v) => {
+      if (v.billing_cycle === 'monthly') return sum + (v.cost_monthly || 0);
+      if (v.billing_cycle === 'annual') return sum + ((v.cost_annual || 0) / 12);
+      return sum;
+    }, 0);
+    
+    const result = {
+      total_monthly_spend: Math.round(total_monthly_spend * 100) / 100, // Round to 2 decimal places
+      active_count: count_by_status.active || 0,
+      trial_count: count_by_status.trial || 0,
+      count_by_status,
+      count_by_department
+    };
+    
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+// 10. Organization / Agent Status
 server.tool('get_org_tree', 'Get full organizational tree (nested JSON)',
   {},
   async () => apiResult(await api('GET', '/api/org'))
