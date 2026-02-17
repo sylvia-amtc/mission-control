@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMTECCO - Transmission Mark V3</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        :root {
+            --navy: #0A192F;
+            --electric-blue: #2563EB;
+            --cyan: #06B6D4;
+            --neo-mint: #D1FAE5;
+            --white: #ffffff;
+            --slate: #94A3B8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--navy);
+            color: var(--white);
+            margin: 0;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--neo-mint);
+            margin-bottom: 10px;
+            letter-spacing: -0.02em;
+        }
+
+        p.subtitle {
+            color: var(--slate);
+            font-size: 16px;
+            margin-bottom: 60px;
+            max-width: 600px;
+            line-height: 1.5;
+        }
+
+        .concept-block {
+            margin-bottom: 100px;
+        }
+
+        .concept-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 16px;
+        }
+
+        .concept-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--white);
+        }
+
+        .concept-desc {
+            font-size: 14px;
+            color: var(--cyan);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .card {
+            border-radius: 12px;
+            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            position: relative;
+        }
+
+        .card.dark {
+            background-color: #0F2540;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .card.light {
+            background-color: #F8FAFC;
+            color: var(--navy);
+        }
+
+        .logo-row {
+            display: flex;
+            align-items: center;
+            gap: 60px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .symbol-only {
+            width: 64px;
+            height: 64px;
+        }
+
+        .lockup {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .lockup svg {
+            width: 48px;
+            height: 48px;
+        }
+
+        .wordmark {
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 24px;
+            letter-spacing: -0.03em;
+        }
+
+        .light .wordmark {
+            color: var(--navy);
+        }
+
+        .dark .wordmark {
+            color: var(--white);
+        }
+
+        /* SVG Utilities */
+        .fill-primary { fill: var(--electric-blue); }
+        .fill-secondary { fill: var(--cyan); }
+        .fill-accent { fill: var(--neo-mint); }
+        .fill-dark { fill: var(--navy); }
+        
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Transmission Mark V3</h1>
+    <p class="subtitle">
+        Five new distinct geometric abstractions focusing on transmission, reliability, and precision. Pushing further into non-literal representations of broadcast infrastructure.
+    </p>
+
+    <!-- Concept 1: The Orbital Lock -->
+    <div class="concept-block">
+        <div class="concept-header">
+            <span class="concept-title">01. The Orbital Lock</span>
+            <span class="concept-desc">Precision & Secure Transport</span>
+        </div>
+        <div class="grid">
+            <!-- Dark Mode -->
+            <div class="card dark">
+                <div class="logo-row">
+                    <div class="symbol-only">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Outer Ring (Global reach) -->
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M50 90C72.0914 90 90 72.0914 90 50C90 27.9086 72.0914 10 50 10C27.9086 10 10 27.9086 10 50C10 72.0914 27.9086 90 50 90ZM50 80C66.5685 80 80 66.5685 80 50C80 33.4315 66.5685 20 50 20C33.4315 20 20 33.4315 20 50C20 66.5685 33.4315 80 50 80Z" fill="#2563EB"/>
+                            <!-- Inner "Key" (Secure Core) -->
+                            <path d="M50 35L63 57.5H37L50 35Z" fill="#06B6D4"/>
+                            <!-- Pulse Dot -->
+                            <circle cx="50" cy="52" r="4" fill="#D1FAE5"/>
+                        </svg>
+                    </div>
+                    <div class="lockup">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M50 90C72.0914 90 90 72.0914 90 50C90 27.9086 72.0914 10 50 10C27.9086 10 10 27.9086 10 50C10 72.0914 27.9086 90 50 90ZM50 80C66.5685 80 80 66.5685 80 50C80 33.4315 66.5685 20 50 20C33.4315 20 20 33.4315 20 50C20 66.5685 33.4315 80 50 80Z" fill="#2563EB"/>
+                            <path d="M50 35L63 57.5H37L50 35Z" fill="#06B6D4"/>
+                            <circle cx="50" cy="52" r="4" fill="#D1FAE5"/>
+                        </svg>
+                        <span class="wordmark">AMTECCO</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Light Mode -->
+            <div class="card light">
+                <div class="logo-row">
+                    <div class="symbol-only">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M50 90C72.0914 90 90 72.0914 90 50C90 27.9086 72.0914 10 50 10C27.9086 10 10 27.9086 10 50C10 72.0914 27.9086 90 50 90ZM50 80C66.5685 80 80 66.5685 80 50C80 33.4315 66.5685 20 50 20C33.4315 20 20 33.4315 20 50C20 66.5685 33.4315 80 50 80Z" fill="#2563EB"/>
+                            <path d="M50 35L63 57.5H37L50 35Z" fill="#06B6D4"/>
+                            <circle cx="50" cy="52" r="4" fill="#0A192F"/>
+                        </svg>
+                    </div>
+                    <div class="lockup">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M50 90C72.0914 90 90 72.0914 90 50C90 27.9086 72.0914 10 50 10C27.9086 10 10 27.9086 10 50C10 72.0914 27.9086 90 50 90ZM50 80C66.5685 80 80 66.5685 80 50C80 33.4315 66.5685 20 50 20C33.4315 20 20 33.4315 20 50C20 66.5685 33.4315 80 50 80Z" fill="#2563EB"/>
+                            <path d="M50 35L63 57.5H37L50 35Z" fill="#06B6D4"/>
+                            <circle cx="50" cy="52" r="4" fill="#0A192F"/>
+                        </svg>
+                        <span class="wordmark">AMTECCO</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Concept 2: The Flux Cube -->
+    <div class="concept-block">
+        <div class="concept-header">
+            <span class="concept-title">02. The Flux Cube</span>
+            <span class="concept-desc">Volume & Infrastructure</span>
+        </div>
+        <div class="grid">
+            <!-- Dark Mode -->
+            <div class="card dark">
+                <div class="logo-row">
+                    <div class="symbol-only">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Isometric Cube Base -->
+                            <path d="M50 85L15 65V35L50 15L85 35V65L50 85Z" fill="#0A192F" stroke="#2563EB" stroke-width="6"/>
+                            <!-- Internal Network -->
+                            <path d="M50 50L85 30M50 50L15 30M50 50L50 85" stroke="#2563EB" stroke-width="4"/>
+                            <!-- Active Node -->
+                            <circle cx="50" cy="50" r="10" fill="#06B6D4"/>
+                            <!-- Signal Point -->
+                            <circle cx="50" cy="50" r="4" fill="#D1FAE5"/>
+                        </svg>
+                    </div>
+                    <div class="lockup">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M50 85L15 65V35L50 15L85 35V65L50 85Z" fill="#0A192F" stroke="#2563EB" stroke-width="6"/>
+                            <path d="M50 50L85 30M50 50L15 30M50 50L50 85" stroke="#2563EB" stroke-width="4"/>
+                            <circle cx="50" cy="50" r="10" fill="#06B6D4"/>
+                            <circle cx="50" cy="50" r="4" fill="#D1FAE5"/>
+                        </svg>
+                        <span class="wordmark">AMTECCO</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Light Mode -->
+            <div class="card light">
+                <div class="logo-row">
+                    <div class="symbol-only">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M50 85L15 65V35L50 15L85 35V65L50 85Z" fill="white" stroke="#2563EB" stroke-width="6"/>
+                            <path d="M50 50L85 30M50 50L15 30M50 50L50 85" stroke="#2563EB" stroke-width="4"/>
+                            <circle cx="50" cy="50" r="10" fill="#06B6D4"/>
+                            <circle cx="50" cy="50" r="4" fill="white"/>
+                        </svg>
+                    </div>
+                    <div class="lockup">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M50 85L15 65V35L50 15L85 35V65L50 85Z" fill="white" stroke="#2563EB" stroke-width="6"/>
+                            <path d="M50 50L85 30M50 50L15 30M50 50L50 85" stroke="#2563EB" stroke-width="4"/>
+                            <circle cx="50" cy="50" r="10" fill="#06B6D4"/>
+                            <circle cx="50" cy="50" r="4" fill="white"/>
+                        </svg>
+                        <span class="wordmark">AMTECCO</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Concept 3: The Sine Hex -->
+    <div class="concept-block">
+        <div class="concept-header">
+            <span class="concept-title">03. The Sine Hex</span>
+            <span class="concept-desc">Frequency & Stability</span>
+        </div>
+        <div class="grid">
+            <!-- Dark Mode -->
+            <div class="card dark">
+                <div class="logo-row">
+                    <div class="symbol-only">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Hexagon Frame -->
+                            <path d="M25 25L75 25L95 50L75 75L25 75L5 50L25 25Z" stroke="#2563EB" stroke-width="6" fill="none"/>
+                            <!-- Waveform inside -->
+                            <path d="M20 50C30 30 40 70 50 50C60 30 70 70 80 50" stroke="#06B6D4" stroke-width="6" stroke-linecap="round"/>
+                            <!-- Data Point -->
+                            <circle cx="50" cy="50" r="6" fill="#D1FAE5"/>
+                        </svg>
+                    </div>
+                    <div class="lockup">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M25 25L75 25L95 50L75 75L25 75L5 50L25 25Z" stroke="#2563EB" stroke-width="6" fill="none"/>
+                            <path d="M20 50C30 30 40 70 50 50C60 30 70 70 80 50" stroke="#06B6D4" stroke-width="6" stroke-linecap="round"/>
+                            <circle cx="50" cy="50" r="6" fill="#D1FAE5"/>
+                        </svg>
+                        <span class="wordmark">AMTECCO</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Light Mode -->
+            <div class="card light">
+                <div class="logo-row">
+                    <div class="symbol-only">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M25 25L75 25L95 50L75 75L25 75L5 50L25 25Z" stroke="#2563EB" stroke-width="6" fill="none"/>
+                            <path d="M20 50C30 30 40 70 50 50C60 30 70 70 80 50" stroke="#06B6D4" stroke-width="6" stroke-linecap="round"/>
+                            <circle cx="50" cy="50" r="6" fill="#0A192F"/>
+                        </svg>
+                    </div>
+                    <div class="lockup">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M25 25L75 25L95 50L75 75L25 75L5 50L25 25Z" stroke="#2563EB" stroke-width="6" fill="none"/>
+                            <path d="M20 50C30 30 40 70 50 50C60 30 70 70 80 50" stroke="#06B6D4" stroke-width="6" stroke-linecap="round"/>
+                            <circle cx="50" cy="50" r="6" fill="#0A192F"/>
+                        </svg>
+                        <span class="wordmark">AMTECCO</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Concept 4: The Apex Delta -->
+    <div class="concept-block">
+        <div class="concept-header">
+            <span class="concept-title">04. The Apex Delta</span>
+            <span class="concept-desc">Upward Momentum & Scale</span>
+        </div>
+        <div class="grid">
+            <!-- Dark Mode -->
+            <div class="card dark">
+                <div class="logo-row">
+                    <div class="symbol-only">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Large Delta -->
+                            <path d="M50 15L90 85H10L50 15Z" fill="#2563EB" opacity="0.4"/>
+                            <!-- Medium Delta -->
+                            <path d="M50 35L80 85H20L50 35Z" fill="#2563EB" opacity="0.7"/>
+                            <!-- Small Delta (Brightest) -->
+                            <path d="M50 55L70 85H30L50 55Z" fill="#06B6D4"/>
+                            <!-- Top Signal -->
+                            <circle cx="50" cy="15" r="5" fill="#D1FAE5"/>
+                        </svg>
+                    </div>
+                    <div class="lockup">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M50 15L90 85H10L50 15Z" fill="#2563EB" opacity="0.4"/>
+                            <path d="M50 35L80 85H20L50 35Z" fill="#2563EB" opacity="0.7"/>
+                            <path d="M50 55L70 85H30L50 55Z" fill="#06B6D4"/>
+                            <circle cx="50" cy="15" r="5" fill="#D1FAE5"/>
+                        </svg>
+                        <span class="wordmark">AMTECCO</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Light Mode -->
+            <div class="card light">
+                <div class="logo-row">
+                    <div class="symbol-only">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M50 15L90 85H10L50 15Z" fill="#2563EB" opacity="0.4"/>
+                            <path d="M50 35L80 85H20L50 35Z" fill="#2563EB" opacity="0.7"/>
+                            <path d="M50 55L70 85H30L50 55Z" fill="#06B6D4"/>
+                            <circle cx="50" cy="15" r="5" fill="#0A192F"/>
+                        </svg>
+                    </div>
+                    <div class="lockup">
+                         <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M50 15L90 85H10L50 15Z" fill="#2563EB" opacity="0.4"/>
+                            <path d="M50 35L80 85H20L50 35Z" fill="#2563EB" opacity="0.7"/>
+                            <path d="M50 55L70 85H30L50 55Z" fill="#06B6D4"/>
+                            <circle cx="50" cy="15" r="5" fill="#0A192F"/>
+                        </svg>
+                        <span class="wordmark">AMTECCO</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Concept 5: The Stream Array -->
+    <div class="concept-block">
+        <div class="concept-header">
+            <span class="concept-title">05. The Stream Array</span>
+            <span class="concept-desc">Parallel Processing & Speed</span>
+        </div>
+        <div class="grid">
+            <!-- Dark Mode -->
+            <div class="card dark">
+                <div class="logo-row">
+                    <div class="symbol-only">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Stream 1 -->
+                            <rect x="10" y="20" width="60" height="12" rx="4" fill="#2563EB"/>
+                            <!-- Stream 2 (Offset) -->
+                            <rect x="30" y="44" width="60" height="12" rx="4" fill="#06B6D4"/>
+                            <!-- Stream 3 -->
+                            <rect x="10" y="68" width="60" height="12" rx="4" fill="#2563EB"/>
+                            <!-- Leading Edge Dots -->
+                            <circle cx="80" cy="26" r="6" fill="#D1FAE5"/>
+                            <circle cx="20" cy="50" r="6" fill="#D1FAE5"/>
+                            <circle cx="80" cy="74" r="6" fill="#D1FAE5"/>
+                        </svg>
+                    </div>
+                    <div class="lockup">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="10" y="20" width="60" height="12" rx="4" fill="#2563EB"/>
+                            <rect x="30" y="44" width="60" height="12" rx="4" fill="#06B6D4"/>
+                            <rect x="10" y="68" width="60" height="12" rx="4" fill="#2563EB"/>
+                            <circle cx="80" cy="26" r="6" fill="#D1FAE5"/>
+                            <circle cx="20" cy="50" r="6" fill="#D1FAE5"/>
+                            <circle cx="80" cy="74" r="6" fill="#D1FAE5"/>
+                        </svg>
+                        <span class="wordmark">AMTECCO</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Light Mode -->
+            <div class="card light">
+                <div class="logo-row">
+                    <div class="symbol-only">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="10" y="20" width="60" height="12" rx="4" fill="#2563EB"/>
+                            <rect x="30" y="44" width="60" height="12" rx="4" fill="#06B6D4"/>
+                            <rect x="10" y="68" width="60" height="12" rx="4" fill="#2563EB"/>
+                            <circle cx="80" cy="26" r="6" fill="#0A192F"/>
+                            <circle cx="20" cy="50" r="6" fill="#0A192F"/>
+                            <circle cx="80" cy="74" r="6" fill="#0A192F"/>
+                        </svg>
+                    </div>
+                    <div class="lockup">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="10" y="20" width="60" height="12" rx="4" fill="#2563EB"/>
+                            <rect x="30" y="44" width="60" height="12" rx="4" fill="#06B6D4"/>
+                            <rect x="10" y="68" width="60" height="12" rx="4" fill="#2563EB"/>
+                            <circle cx="80" cy="26" r="6" fill="#0A192F"/>
+                            <circle cx="20" cy="50" r="6" fill="#0A192F"/>
+                            <circle cx="80" cy="74" r="6" fill="#0A192F"/>
+                        </svg>
+                        <span class="wordmark">AMTECCO</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

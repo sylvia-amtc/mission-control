@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMTECCO - Transmission Mark V2</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        :root {
+            --navy: #0A192F;
+            --electric-blue: #2563EB;
+            --cyan: #06B6D4;
+            --neo-mint: #D1FAE5;
+            --white: #ffffff;
+            --slate: #94A3B8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--navy);
+            color: var(--white);
+            margin: 0;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--neo-mint);
+            margin-bottom: 10px;
+            letter-spacing: -0.02em;
+        }
+
+        p.subtitle {
+            color: var(--slate);
+            font-size: 16px;
+            margin-bottom: 60px;
+            max-width: 600px;
+            line-height: 1.5;
+        }
+
+        .concept-block {
+            margin-bottom: 100px;
+        }
+
+        .concept-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 16px;
+        }
+
+        .concept-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--white);
+        }
+
+        .concept-desc {
+            font-size: 14px;
+            color: var(--cyan);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .card {
+            border-radius: 12px;
+            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            position: relative;
+        }
+
+        .card.dark {
+            background-color: #0F2540; /* Slightly lighter than main bg for contrast */
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .card.light {
+            background-color: #F8FAFC;
+            color: var(--navy);
+        }
+
+        .logo-row {
+            display: flex;
+            align-items: center;
+            gap: 60px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .symbol-only {
+            width: 64px;
+            height: 64px;
+        }
+
+        .lockup {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .lockup svg {
+            width: 48px;
+            height: 48px;
+        }
+
+        .wordmark {
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 24px;
+            letter-spacing: -0.03em;
+        }
+
+        .light .wordmark {
+            color: var(--navy);
+        }
+
+        .dark .wordmark {
+            color: var(--white);
+        }
+
+        /* SVG Utilities */
+        .fill-primary { fill: var(--electric-blue); }
+        .fill-secondary { fill: var(--cyan); }
+        .fill-accent { fill: var(--neo-mint); }
+        .fill-dark { fill: var(--navy); }
+        
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Transmission Mark V2</h1>
+    <p class="subtitle">
+        Originality push. Three distinct geometric abstractions focusing on transmission, reliability, and premium tech. Moving away from literal antenna/tower shapes.
+    </p>
+
+    <!-- Concept 1 -->
+    <div class="concept-block">
+        <div class="concept-header">
+            <span class="concept-title">01. The Vector Stack</span>
+            <span class="concept-desc">Throughput & Acceleration</span>
+        </div>
+        <div class="grid">
+            <!-- Dark Mode -->
+            <div class="card dark">
+                <div class="logo-row">
+                    <!-- Symbol -->
+                    <div class="symbol-only">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Bottom Chevron (Base) -->
+                            <path d="M20 70 L50 40 L80 70 L70 80 L50 60 L30 80 Z" fill="#2563EB"/>
+                            <!-- Top Chevron (Signal) - Offset and sharper -->
+                            <path d="M50 10 L80 40 L70 50 L50 30 L30 50 L20 40 Z" fill="#06B6D4"/>
+                            <!-- Center Core (Integration) -->
+                            <rect x="42" y="45" width="16" height="16" rx="2" fill="#D1FAE5" transform="rotate(45 50 53)"/>
+                        </svg>
+                    </div>
+                    <!-- Lockup -->
+                    <div class="lockup">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 70 L50 40 L80 70 L70 80 L50 60 L30 80 Z" fill="#2563EB"/>
+                            <path d="M50 10 L80 40 L70 50 L50 30 L30 50 L20 40 Z" fill="#06B6D4"/>
+                            <rect x="42" y="45" width="16" height="16" rx="2" fill="#D1FAE5" transform="rotate(45 50 53)"/>
+                        </svg>
+                        <span class="wordmark">AMTECCO</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Light Mode -->
+            <div class="card light">
+                <div class="logo-row">
+                    <div class="symbol-only">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 70 L50 40 L80 70 L70 80 L50 60 L30 80 Z" fill="#2563EB"/>
+                            <path d="M50 10 L80 40 L70 50 L50 30 L30 50 L20 40 Z" fill="#06B6D4"/>
+                            <rect x="42" y="45" width="16" height="16" rx="2" fill="#0A192F" transform="rotate(45 50 53)"/>
+                        </svg>
+                    </div>
+                    <div class="lockup">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 70 L50 40 L80 70 L70 80 L50 60 L30 80 Z" fill="#2563EB"/>
+                            <path d="M50 10 L80 40 L70 50 L50 30 L30 50 L20 40 Z" fill="#06B6D4"/>
+                            <rect x="42" y="45" width="16" height="16" rx="2" fill="#0A192F" transform="rotate(45 50 53)"/>
+                        </svg>
+                        <span class="wordmark">AMTECCO</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Concept 2 -->
+    <div class="concept-block">
+        <div class="concept-header">
+            <span class="concept-title">02. The Prism Node</span>
+            <span class="concept-desc">Clarity & Distribution</span>
+        </div>
+        <div class="grid">
+            <!-- Dark Mode -->
+            <div class="card dark">
+                <div class="logo-row">
+                    <div class="symbol-only">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Left Pillar -->
+                            <path d="M20 80 L45 20 L45 80 Z" fill="#2563EB"/>
+                            <!-- Right Pillar -->
+                            <path d="M80 80 L55 20 L55 80 Z" fill="#06B6D4"/>
+                            <!-- The Signal (Negative space implied, or floating element) -->
+                            <circle cx="50" cy="15" r="8" fill="#D1FAE5"/>
+                        </svg>
+                    </div>
+                    <div class="lockup">
+                         <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 80 L45 20 L45 80 Z" fill="#2563EB"/>
+                            <path d="M80 80 L55 20 L55 80 Z" fill="#06B6D4"/>
+                            <circle cx="50" cy="15" r="8" fill="#D1FAE5"/>
+                        </svg>
+                        <span class="wordmark">AMTECCO</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Light Mode -->
+            <div class="card light">
+                <div class="logo-row">
+                    <div class="symbol-only">
+                         <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 80 L45 20 L45 80 Z" fill="#2563EB"/>
+                            <path d="M80 80 L55 20 L55 80 Z" fill="#06B6D4"/>
+                            <circle cx="50" cy="15" r="8" fill="#0A192F"/>
+                        </svg>
+                    </div>
+                    <div class="lockup">
+                         <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 80 L45 20 L45 80 Z" fill="#2563EB"/>
+                            <path d="M80 80 L55 20 L55 80 Z" fill="#06B6D4"/>
+                            <circle cx="50" cy="15" r="8" fill="#0A192F"/>
+                        </svg>
+                        <span class="wordmark">AMTECCO</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Concept 3 -->
+    <div class="concept-block">
+        <div class="concept-header">
+            <span class="concept-title">03. The Binary Apex</span>
+            <span class="concept-desc">Reliability & Code</span>
+        </div>
+        <div class="grid">
+            <!-- Dark Mode -->
+            <div class="card dark">
+                <div class="logo-row">
+                    <div class="symbol-only">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Main Triangle Shape formed by lines -->
+                            <!-- Left heavy stroke -->
+                            <rect x="25" y="20" width="15" height="60" rx="2" fill="#2563EB" transform="skewX(-10)"/>
+                            <!-- Right heavy stroke -->
+                            <rect x="55" y="20" width="15" height="60" rx="2" fill="#06B6D4" transform="skewX(10)"/>
+                            <!-- Crossbar / Connection -->
+                            <rect x="38" y="55" width="24" height="8" rx="2" fill="#D1FAE5"/>
+                        </svg>
+                    </div>
+                    <div class="lockup">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="25" y="20" width="15" height="60" rx="2" fill="#2563EB" transform="skewX(-10)"/>
+                            <rect x="55" y="20" width="15" height="60" rx="2" fill="#06B6D4" transform="skewX(10)"/>
+                            <rect x="38" y="55" width="24" height="8" rx="2" fill="#D1FAE5"/>
+                        </svg>
+                        <span class="wordmark">AMTECCO</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Light Mode -->
+            <div class="card light">
+                <div class="logo-row">
+                    <div class="symbol-only">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="25" y="20" width="15" height="60" rx="2" fill="#2563EB" transform="skewX(-10)"/>
+                            <rect x="55" y="20" width="15" height="60" rx="2" fill="#06B6D4" transform="skewX(10)"/>
+                            <rect x="38" y="55" width="24" height="8" rx="2" fill="#0A192F"/>
+                        </svg>
+                    </div>
+                    <div class="lockup">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="25" y="20" width="15" height="60" rx="2" fill="#2563EB" transform="skewX(-10)"/>
+                            <rect x="55" y="20" width="15" height="60" rx="2" fill="#06B6D4" transform="skewX(10)"/>
+                            <rect x="38" y="55" width="24" height="8" rx="2" fill="#0A192F"/>
+                        </svg>
+                        <span class="wordmark">AMTECCO</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

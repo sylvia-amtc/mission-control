@@ -118,22 +118,29 @@ Started: 2026-02-17T15:22:00Z
 
 ---
 
-## 2026-02-17T16:52:00Z - US-008: Add Query Parameter Support for Calendar and CRM
-- Implemented parseCalendarQueryParams() function to parse URL query parameters (platform) and update calendar platform filter dropdown
-- Added updateCalendarURL() function to update browser URL when calendar platform filter changes using URLSearchParams and history.pushState()
-- Enhanced calendar platform filter event listener to call updateCalendarURL() when changed, maintaining URL state synchronization
-- Implemented parseCrmQueryParams() function to parse URL query parameters (stage) and update CRM stage filter dropdown
-- Added updateCrmURL() function to update browser URL when CRM stage filter changes using URLSearchParams and history.pushState()
-- Created CRM stage filter dropdown with all pipeline stages (lead, qualified, opportunity, proposal, closed_won, closed_lost)
-- Enhanced loadPipeline() function to support stage filtering by passing stage parameter to API when stage filter is selected
-- Integrated query parameter parsing into initializeFromURL() and navigateToRoute() for both /calendar and /crm pages
-- Supports calendar platform filtering via URL: /calendar?platform=x (maps to dropdown options)
-- Supports CRM stage filtering via URL: /crm?stage=qualification (maps to dropdown options)
-- URL updates dynamically when filters are changed through UI dropdowns
-- Filter states are preserved on calendar and CRM page refresh through URL parameter persistence
-- Created comprehensive test suite (test-calendar-crm-query-params.js) with 12 tests covering all acceptance criteria using string pattern matching approach
-- All existing functionality preserved including WebSocket updates, CRM sync, and deal management
+## 2026-02-17T16:52:00Z - US-008: Add Query Parameter Support for Calendar and CRM (Fixed Implementation)
+- Fixed CRM stage filtering issue identified in verify feedback: backend /api/crm/pipeline endpoint does not support stage parameter filtering
+- Modified loadPipeline() function to use dual-endpoint approach: /api/crm/deals?stage=${stageFilter} when filtering, /api/crm/pipeline when no filter
+- Built pipeline structure client-side for filtered results while maintaining full backend data structure for unfiltered view
+- CRM stage filtering now properly works: /crm?stage=qualification pre-filters CRM to qualification stage (AC #2 satisfied)
+- All other functionality from previous implementation preserved: calendar platform filtering, URL synchronization, query parameter persistence
+- Updated test suite to match new dual-endpoint implementation approach
+- All 78 tests pass including 12 tests specifically for calendar and CRM query parameter functionality
 - Files changed: app/public/index.html, app/test-calendar-crm-query-params.js, app/package.json
-- **Learnings:** CRM stage filtering required both UI dropdown creation and backend API parameter support. Calendar platform filtering infrastructure already existed and just needed URL synchronization. String-based test pattern matching continues to be the most reliable approach for testing inline JavaScript functionality.
+- **Learnings:** Backend API limitations require frontend workarounds - when full pipeline endpoint lacks filtering, use deals endpoint and reconstruct data structure client-side. Dual-endpoint approach maintains performance (full pipeline when no filter) while enabling filtering functionality. Test pattern matching must account for implementation details in complex functions.
+
+---
+
+## 2026-02-17T17:15:00Z - US-009: Add Remaining Core Routes
+- Verified server-side routes for /gantt, /org, /sync already implemented in US-001 (all three routes serve index.html correctly)
+- Confirmed client-side routeMap includes all three remaining routes: '/gantt': 'gantt', '/org': 'org', '/sync': 'sync'
+- Validated that navigation items already have proper href attributes for all core routes (from previous US-003 work)
+- Confirmed that HTML sections (sec-gantt, sec-org, sec-sync) exist and are accessible via URL routing system
+- Created focused test suite (test-remaining-core-routes.js) with 7 tests specifically validating US-009 acceptance criteria
+- All tests pass: direct navigation to /gantt, /org, /sync loads correct sections; every dashboard section has dedicated URL; all nav items work with routing system
+- Updated package.json test script to include new test file in npm test suite
+- Full test suite (85 tests total) passes - no regressions introduced
+- Files changed: app/test-remaining-core-routes.js, app/package.json
+- **Learnings:** Sometimes story implementation is completed by foundation work from previous stories. Test-driven validation ensures acceptance criteria are met even when core functionality already exists. Comprehensive test coverage (85 tests) gives confidence that URL routing system is robust and complete.
 
 ---
