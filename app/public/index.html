@@ -1548,6 +1548,8 @@ async function toggleActionThread(id) {
     const thread = document.getElementById(`action-thread-${id}`);
     if (thread) thread.classList.remove('open');
     document.getElementById(`action-card-${id}`)?.classList.remove('expanded');
+    // Update URL to go back to /actions when collapsing
+    history.pushState({ section: 'actions', actionId: null }, '', '/actions');
     return;
   }
   // Collapse previous
@@ -1563,6 +1565,8 @@ async function toggleActionThread(id) {
     thread.classList.add('open');
     card?.classList.add('expanded');
     thread.innerHTML = '<div class="px-4 pb-4"><div class="text-xs text-[#64748b] text-center py-4">Loading...</div></div>';
+    // Update URL to /actions/:id when expanding
+    history.pushState({ section: 'actions', actionId: id }, '', `/actions/${id}`);
     const messages = await api(`/api/actions/${id}/messages`);
     renderThread(id, messages);
   }
@@ -2188,26 +2192,8 @@ function navigateToRoute(path, pushState = true) {
   
   // Handle action item deep linking
   if (section === 'actions' && actionId) {
-    // Set filter state and expand the specific action
-    actionCurrentFilter = 'all';
-    actionCurrentSeverity = '';
-    actionCurrentRequester = '';
-    actionCurrentPage = 1;
-    actionExpandedId = null;
-    
-    // Load actions and then expand the specific item
-    loadActionCounts().then(() => {
-      setTimeout(() => {
-        const actionElement = document.querySelector(`[data-action-id="${actionId}"]`);
-        if (actionElement) {
-          actionElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          actionElement.style.background = 'rgba(59, 130, 246, 0.1)';
-          setTimeout(() => {
-            actionElement.style.background = '';
-          }, 2000);
-        }
-      }, 100);
-    });
+    // Use the newer loadActionItemsAndExpand function for better deep linking
+    loadActionItemsAndExpand(parseInt(actionId));
   }
   
   // Close mobile menu
