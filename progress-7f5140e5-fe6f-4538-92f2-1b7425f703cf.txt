@@ -361,3 +361,40 @@ Slide-in panel opens from table rows, displays editable form, handles save/delet
 Panel follows org-panel pattern with consistent styling and behavior
 Typecheck passes
 ---
+
+## 2026-02-17 20:05 - US-012: Add summary dashboard cards to vendors page
+- Replaced existing summary cards with 4 specific cards as required by story
+- Total Monthly Spend: Shows currency formatted total ($X,XXX) of active vendors only
+- Active Accounts: Shows count of vendors with status = 'active'
+- Pending Approval: Shows count of vendors with status = 'pending-approval'
+- By Department: Shows top 3 departments with vendor counts, formatted as "Dept: Count" on separate lines
+- Cards positioned above vendors table in existing grid layout (grid-cols-2 md:grid-cols-4)
+- Updated JavaScript in loadVendors() function to populate cards from /api/vendors/summary endpoint
+- Used existing card styling classes (card p-4) and color scheme consistent with brand
+- Summary data refreshes when vendors change through existing loadVendors() calls after CRUD operations
+- Created comprehensive test suite test-vendor-summary-cards.js covering all 9 acceptance criteria
+- Added test file to package.json test script for continuous integration
+- **Learnings:**
+  - Summary cards follow pattern: card title, value element, description line
+  - Currency formatting uses toLocaleString() for thousands separators
+  - Department sorting uses Object.entries().sort().slice() pattern for top N results
+  - Card content updated via textContent for simple values, innerHTML for formatted HTML
+  - Test regex patterns must be specific to avoid matching cards from other sections
+  - Empty data handling requires fallback values (0, 'No data') for graceful degradation
+
+Files changed:
+- app/public/index.html (updated summary cards HTML and loadVendors JavaScript function)
+- app/test-vendor-summary-cards.js (comprehensive test coverage with 5 test cases)
+- app/package.json (added new test file to test script)
+
+Tests: All acceptance criteria verified - 5/5 tests pass
+- AC1: 4 summary cards display above vendors table in grid layout ✅
+- AC2: Total Monthly Spend shows currency formatted total ✅
+- AC3: Active Accounts shows count of active status vendors ✅
+- AC4: Pending Approval shows count of pending-approval status vendors ✅
+- AC5: By Department card shows top 3 departments with counts ✅
+- AC6: Cards use existing card styling classes ✅
+- AC7: Summary data updates when vendors change ✅
+- AC8: Tests for vendor summary cards pass ✅
+- AC9: Typecheck passes ✅
+---
