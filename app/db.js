@@ -177,6 +177,30 @@ db.exec(`
     FOREIGN KEY (agent_id) REFERENCES agent_status(agent_id)
   );
   CREATE INDEX IF NOT EXISTS idx_agent_activity_agent ON agent_activity(agent_id, completed_at DESC);
+
+  CREATE TABLE IF NOT EXISTS vendors (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL CHECK(category IN ('lead-gen','design','infrastructure','analytics','social','communication','other')),
+    url TEXT DEFAULT '',
+    plan TEXT DEFAULT '',
+    cost_monthly DECIMAL DEFAULT 0,
+    cost_annual DECIMAL,
+    billing_cycle TEXT DEFAULT 'monthly' CHECK(billing_cycle IN ('monthly','annual','one-time','free')),
+    owner TEXT DEFAULT '',
+    users TEXT DEFAULT '[]',
+    department TEXT DEFAULT '',
+    status TEXT DEFAULT 'active' CHECK(status IN ('active','trial','pending-approval','suspended','cancelled')),
+    login_email TEXT DEFAULT '',
+    notes TEXT DEFAULT '',
+    renewal_date TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_vendors_status ON vendors(status);
+  CREATE INDEX IF NOT EXISTS idx_vendors_department ON vendors(department);
+  CREATE INDEX IF NOT EXISTS idx_vendors_category ON vendors(category);
 `);
 
 // ─── Migrations ─────────────────────────────────────────────────
@@ -355,6 +379,22 @@ const stmts = {
   upsertSyncStatus: db.prepare(`INSERT INTO sync_status (source, last_sync, status, details) VALUES (@source, @last_sync, @status, @details) ON CONFLICT(source) DO UPDATE SET last_sync=@last_sync, status=@status, details=@details`),
   getAllSyncStatus: db.prepare('SELECT * FROM sync_status ORDER BY source'),
   getSyncStatus: db.prepare('SELECT * FROM sync_status WHERE source = ?'),
+
+  // Vendors
+  getAllVendors: db.prepare('SELECT * FROM vendors ORDER BY name'),
+  getVendorsByStatus: db.prepare('SELECT * FROM vendors WHERE status = ? ORDER BY name'),
+  getVendorsByDepartment: db.prepare('SELECT * FROM vendors WHERE department = ? ORDER BY name'),
+  getVendorsByCategory: db.prepare('SELECT * FROM vendors WHERE category = ? ORDER BY name'),
+  getVendor: db.prepare('SELECT * FROM vendors WHERE id = ?'),
+  insertVendor: db.prepare(`INSERT INTO vendors (name, category, url, plan, cost_monthly, cost_annual, billing_cycle, owner, users, department, status, login_email, notes, renewal_date) VALUES (@name, @category, @url, @plan, @cost_monthly, @cost_annual, @billing_cycle, @owner, @users, @department, @status, @login_email, @notes, @renewal_date)`),
+  updateVendor: db.prepare(`UPDATE vendors SET name=@name, category=@category, url=@url, plan=@plan, cost_monthly=@cost_monthly, cost_annual=@cost_annual, billing_cycle=@billing_cycle, owner=@owner, users=@users, department=@department, status=@status, login_email=@login_email, notes=@notes, renewal_date=@renewal_date, updated_at=datetime('now') WHERE id=@id`),
+  deleteVendor: db.prepare('DELETE FROM vendors WHERE id = ?'),
+  vendorSummary: db.prepare(`SELECT 
+    COUNT(*) as total_count,
+    COUNT(CASE WHEN status = 'active' THEN 1 END) as active_count,
+    COUNT(CASE WHEN status = 'pending-approval' THEN 1 END) as pending_count,
+    SUM(CASE WHEN billing_cycle = 'monthly' THEN cost_monthly WHEN billing_cycle = 'annual' THEN cost_annual/12 ELSE 0 END) as total_monthly_cost
+    FROM vendors`),
 };
 
 function logActivity(type, entityType, entityId, message, actor = 'system') {
