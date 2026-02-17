@@ -1026,6 +1026,23 @@
         </div>
       </div>
 
+      <!-- Cost Breakdown -->
+      <div class="card mb-6">
+        <div class="card-header px-5 py-3">
+          <h3 class="font-semibold text-sm">💰 Cost Breakdown by Department</h3>
+        </div>
+        <div class="p-5">
+          <div class="flex justify-center">
+            <div style="width:400px;height:300px;position:relative;">
+              <canvas id="cost-breakdown-chart"></canvas>
+            </div>
+          </div>
+          <div class="text-center text-xs text-[#64748b] mt-3">
+            Monthly spend by department (active vendors only)
+          </div>
+        </div>
+      </div>
+
       <!-- Filters -->
       <div class="flex gap-2 mb-4 flex-wrap">
         <select id="vendor-status-filter" class="form-input text-xs" style="width:auto;padding:6px 12px;" onchange="updateFiltersAndLoad()">
@@ -3681,6 +3698,9 @@ async function loadVendors() {
     VENDORS = await api(url);
     renderVendorsTable();
     
+    // Update cost breakdown chart after vendors are loaded
+    renderCostBreakdownChart(summaryData);
+    
     // Update sync time
     document.getElementById('vendor-sync-time').textContent = `Updated ${new Date().toLocaleTimeString()}`;
   } catch (e) {
@@ -3742,6 +3762,152 @@ function loadFiltersFromURL() {
   if (categoryFilter && params.get('category')) categoryFilter.value = params.get('category');
   if (departmentFilter && params.get('department')) departmentFilter.value = params.get('department');
   if (searchInput && params.get('search')) searchInput.value = params.get('search');
+}
+
+// Global variable to store chart instance
+let costBreakdownChartInstance = null;
+
+async function renderCostBreakdownChart(summaryData) {
+  try {
+    const canvas = document.getElementById('cost-breakdown-chart');
+    if (!canvas) return;
+
+    // Destroy existing chart if it exists
+    if (costBreakdownChartInstance) {
+      costBreakdownChartInstance.destroy();
+      costBreakdownChartInstance = null;
+    }
+
+    // Get ALL active vendors for cost breakdown (not filtered ones)
+    const allActiveVendors = await api('/api/vendors?status=active');
+    
+    // Get department spend data - calculate from active vendors only
+    const departmentSpend = {};
+    
+    // Calculate spend by department for active vendors only
+    if (allActiveVendors) {
+      allActiveVendors
+        .forEach(vendor => {
+          const dept = vendor.department || 'Unassigned';
+          const monthlyCost = parseFloat(vendor.cost_monthly) || 0;
+          if (monthlyCost > 0) { // Exclude $0 spend
+            departmentSpend[dept] = (departmentSpend[dept] || 0) + monthlyCost;
+          }
+        });
+    }
+
+    // Convert to chart data
+    const chartLabels = Object.keys(departmentSpend);
+    const chartData = Object.values(departmentSpend);
+
+    // If no data, show empty chart message
+    if (chartLabels.length === 0) {
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.font = '14px Inter';
+      ctx.fillStyle = '#64748b';
+      ctx.textAlign = 'center';
+      ctx.fillText('No active vendor spending data', canvas.width / 2, canvas.height / 2);
+      return;
+    }
+
+    // Department colors mapping
+    const departmentColors = {
+      'Engineering': '#60a5fa',
+      'Marketing': '#06b6d4', 
+      'Sales': '#4ade80',
+      'Operations': '#94a3b8',
+      'Research': '#c084fc',
+      'Design': '#f472b6',
+      'Unassigned': '#64748b'
+    };
+
+    // Generate colors for all departments
+    const backgroundColors = chartLabels.map(dept => 
+      departmentColors[dept] || departmentColors['Unassigned']
+    );
+
+    const ctx = canvas.getContext('2d');
+    
+    costBreakdownChartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: chartLabels,
+        datasets: [{
+          data: chartData,
+          backgroundColor: backgroundColors,
+          borderColor: backgroundColors.map(color => color + '80'), // Add transparency for border
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: '#e2e8f0',
+              font: {
+                family: 'Inter',
+                size: 11
+              },
+              generateLabels: function(chart) {
+                const data = chart.data;
+                if (data.labels.length && data.datasets.length) {
+                  return data.labels.map((label, i) => {
+                    const value = data.datasets[0].data[i];
+                    const formatted = `$${value.toFixed(0)}`;
+                    return {
+                      text: `${label}: ${formatted}`,
+                      fillStyle: backgroundColors[i],
+                      strokeStyle: backgroundColors[i],
+                      lineWidth: 0,
+                      index: i
+                    };
+                  });
+                }
+                return [];
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: '#1a1d2e',
+            titleColor: '#e2e8f0',
+            bodyColor: '#e2e8f0',
+            borderColor: '#2d3148',
+            borderWidth: 1,
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.parsed || 0;
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentage = ((value / total) * 100).toFixed(1);
+                return `${label}: $${value.toFixed(0)} (${percentage}%)`;
+              }
+            }
+          }
+        },
+        layout: {
+          padding: 10
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error rendering cost breakdown chart:', error);
+    
+    // Fallback: show error message on canvas
+    const canvas = document.getElementById('cost-breakdown-chart');
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.font = '12px Inter';
+      ctx.fillStyle = '#ef4444';
+      ctx.textAlign = 'center';
+      ctx.fillText('Error loading chart', canvas.width / 2, canvas.height / 2);
+    }
+  }
 }
 
 function renderVendorsTable() {
