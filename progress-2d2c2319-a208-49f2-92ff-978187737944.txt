@@ -117,3 +117,23 @@ Started: 2026-02-17T15:22:00Z
 - **Learnings:** String-based test pattern matching is more reliable than JSDOM execution for testing inline JavaScript functionality. URLSearchParams approach works consistently across different page types. Department parameter validation ensures only valid dropdown options are applied from URL parameters.
 
 ---
+
+## 2026-02-17T16:52:00Z - US-008: Add Query Parameter Support for Calendar and CRM
+- Implemented parseCalendarQueryParams() function to parse URL query parameters (platform) and update calendar platform filter dropdown
+- Added updateCalendarURL() function to update browser URL when calendar platform filter changes using URLSearchParams and history.pushState()
+- Enhanced calendar platform filter event listener to call updateCalendarURL() when changed, maintaining URL state synchronization
+- Implemented parseCrmQueryParams() function to parse URL query parameters (stage) and update CRM stage filter dropdown
+- Added updateCrmURL() function to update browser URL when CRM stage filter changes using URLSearchParams and history.pushState()
+- Created CRM stage filter dropdown with all pipeline stages (lead, qualified, opportunity, proposal, closed_won, closed_lost)
+- Enhanced loadPipeline() function to support stage filtering by passing stage parameter to API when stage filter is selected
+- Integrated query parameter parsing into initializeFromURL() and navigateToRoute() for both /calendar and /crm pages
+- Supports calendar platform filtering via URL: /calendar?platform=x (maps to dropdown options)
+- Supports CRM stage filtering via URL: /crm?stage=qualification (maps to dropdown options)
+- URL updates dynamically when filters are changed through UI dropdowns
+- Filter states are preserved on calendar and CRM page refresh through URL parameter persistence
+- Created comprehensive test suite (test-calendar-crm-query-params.js) with 12 tests covering all acceptance criteria using string pattern matching approach
+- All existing functionality preserved including WebSocket updates, CRM sync, and deal management
+- Files changed: app/public/index.html, app/test-calendar-crm-query-params.js, app/package.json
+- **Learnings:** CRM stage filtering required both UI dropdown creation and backend API parameter support. Calendar platform filtering infrastructure already existed and just needed URL synchronization. String-based test pattern matching continues to be the most reliable approach for testing inline JavaScript functionality.
+
+---

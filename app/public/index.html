@@ -315,7 +315,16 @@
           <h2 class="text-2xl font-bold">CRM Pipeline</h2>
           <p class="text-sm text-[#94a3b8] mt-1">Twenty CRM Integration · crm.amtc.tv</p>
         </div>
-        <div class="flex gap-2">
+        <div class="flex gap-2 items-center">
+          <select id="crm-stage-filter" class="form-input text-xs" style="width:auto;padding:6px 12px;" onchange="updateCrmURL();loadPipeline()">
+            <option value="">All Stages</option>
+            <option value="lead">Leads</option>
+            <option value="qualified">Qualified</option>
+            <option value="opportunity">Opportunity</option>
+            <option value="proposal">Proposal</option>
+            <option value="closed_won">Closed Won</option>
+            <option value="closed_lost">Closed Lost</option>
+          </select>
           <button onclick="syncCRM()" class="btn-secondary text-xs px-3 py-1.5">🔄 Sync CRM</button>
           <button onclick="openDealModal()" class="btn-primary text-xs px-4 py-1.5">+ New Deal</button>
         </div>
@@ -598,7 +607,7 @@
           <p class="text-sm text-[#94a3b8] mt-1">Scheduled social media posts · Review & approve</p>
         </div>
         <div class="flex gap-2 items-center">
-          <select id="cal-platform-filter" class="form-input text-xs" style="width:auto;padding:6px 12px;" onchange="loadCalendar()">
+          <select id="cal-platform-filter" class="form-input text-xs" style="width:auto;padding:6px 12px;" onchange="updateCalendarURL();loadCalendar()">
             <option value="">All Platforms</option>
             <option value="x">𝕏 (Twitter)</option>
             <option value="linkedin_company">LinkedIn Company</option>
@@ -966,7 +975,47 @@ async function loadAll() {
 }
 async function loadTasks() { TASKS = await api('/api/tasks'); STATS = await api('/api/stats'); GANTT = await api('/api/gantt'); renderKanban(); renderCommandCenter(); renderGantt(); }
 async function loadActionsLegacy() { try { const data = await api('/api/actions?limit=999'); ACTIONS = data.items || data; } catch(e) { ACTIONS = []; } STATS = await api('/api/stats'); renderActions(); renderCommandCenter(); }
-async function loadPipeline() { try { PIPELINE = await api('/api/crm/pipeline'); } catch(e) { PIPELINE = {pipeline:[],totalValue:0,weightedValue:0,crossSell:[],totalDeals:0}; } renderPipeline(); renderCommandPipeline(); }
+async function loadPipeline() { 
+  try { 
+    const stageFilter = document.getElementById('crm-stage-filter')?.value || '';
+    
+    if (stageFilter) {
+      // Use deals endpoint for filtering and build pipeline client-side
+      const deals = await api(`/api/crm/deals?stage=${stageFilter}`);
+      
+      // Build pipeline structure for filtered stage
+      const stages = ['lead', 'qualified', 'opportunity', 'proposal', 'closed_won'];
+      const pipeline = stages.map(s => {
+        const stageDeals = s === stageFilter ? deals : [];
+        const count = stageDeals.length;
+        const value = stageDeals.reduce((sum, d) => sum + (d.value || 0), 0);
+        return { stage: s, count, value, deals: stageDeals };
+      });
+      
+      const totalValue = deals.reduce((sum, d) => sum + (d.value || 0), 0);
+      const weights = { lead: 0.1, qualified: 0.25, opportunity: 0.5, proposal: 0.75, closed_won: 1.0 };
+      const weightedValue = totalValue * (weights[stageFilter] || 0);
+      
+      // Cross-sell tracking for filtered deals
+      const crossSell = [];
+      for (const d of deals) {
+        try {
+          const products = JSON.parse(d.cross_sell_products || '[]');
+          if (products.length > 1) crossSell.push({ company: d.company_name, products, value: d.value });
+        } catch(e) {}
+      }
+      
+      PIPELINE = { pipeline, totalValue, weightedValue, crossSell, totalDeals: deals.length };
+    } else {
+      // Use full pipeline endpoint when no filter
+      PIPELINE = await api('/api/crm/pipeline');
+    }
+  } catch(e) { 
+    PIPELINE = {pipeline:[],totalValue:0,weightedValue:0,crossSell:[],totalDeals:0}; 
+  } 
+  renderPipeline(); 
+  renderCommandPipeline(); 
+}
 
 // ═══ Utility ═══
 function statusBadge(s) {
@@ -1480,6 +1529,87 @@ function updateKanbanURL() {
   
   if (priorityFilter && priorityFilter.value) {
     params.set('priority', priorityFilter.value);
+  }
+  
+  const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+  if (newUrl !== window.location.pathname + window.location.search) {
+    history.pushState(null, '', newUrl);
+  }
+}
+
+// Parse calendar query parameters from URL and update filter state
+function parseCalendarQueryParams() {
+  if (window.location.pathname !== '/calendar') return;
+  
+  const params = new URLSearchParams(window.location.search);
+  
+  // Parse platform parameter
+  const platform = params.get('platform');
+  if (platform) {
+    const platformFilter = document.getElementById('cal-platform-filter');
+    if (platformFilter) {
+      // Check if the platform value exists in the dropdown options
+      const option = Array.from(platformFilter.options).find(opt => opt.value === platform);
+      if (option) {
+        platformFilter.value = platform;
+      }
+    }
+  }
+}
+
+// Update URL with current calendar filter state  
+function updateCalendarURL() {
+  if (window.location.pathname !== '/calendar') return; // Only update URL if we're on the calendar page
+  
+  const params = new URLSearchParams();
+  
+  const platformFilter = document.getElementById('cal-platform-filter');
+  const statusFilter = document.getElementById('cal-status-filter');
+  
+  if (platformFilter && platformFilter.value) {
+    params.set('platform', platformFilter.value);
+  }
+  
+  if (statusFilter && statusFilter.value) {
+    params.set('status', statusFilter.value);
+  }
+  
+  const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+  if (newUrl !== window.location.pathname + window.location.search) {
+    history.pushState(null, '', newUrl);
+  }
+}
+
+// Parse CRM query parameters from URL and update filter state
+function parseCrmQueryParams() {
+  if (window.location.pathname !== '/crm') return;
+  
+  const params = new URLSearchParams(window.location.search);
+  
+  // Parse stage parameter
+  const stage = params.get('stage');
+  if (stage) {
+    const stageFilter = document.getElementById('crm-stage-filter');
+    if (stageFilter) {
+      // Check if the stage value exists in the dropdown options
+      const option = Array.from(stageFilter.options).find(opt => opt.value === stage);
+      if (option) {
+        stageFilter.value = stage;
+      }
+    }
+  }
+}
+
+// Update URL with current CRM filter state
+function updateCrmURL() {
+  if (window.location.pathname !== '/crm') return; // Only update URL if we're on the CRM page
+  
+  const params = new URLSearchParams();
+  
+  const stageFilter = document.getElementById('crm-stage-filter');
+  
+  if (stageFilter && stageFilter.value) {
+    params.set('stage', stageFilter.value);
   }
   
   const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
@@ -2309,6 +2439,16 @@ function navigateToRoute(path, pushState = true) {
     parseKanbanQueryParams();
   }
   
+  // Parse query parameters for calendar page
+  if (section === 'calendar') {
+    parseCalendarQueryParams();
+  }
+  
+  // Parse query parameters for crm page
+  if (section === 'pipeline') {
+    parseCrmQueryParams();
+  }
+  
   // Handle action item deep linking
   if (section === 'actions' && actionId) {
     // Use the newer loadActionItemsAndExpand function for better deep linking
@@ -2339,6 +2479,16 @@ function initializeFromURL() {
   // Parse query parameters for kanban page
   if (path === '/kanban') {
     parseKanbanQueryParams();
+  }
+  
+  // Parse query parameters for calendar page
+  if (path === '/calendar') {
+    parseCalendarQueryParams();
+  }
+  
+  // Parse query parameters for crm page
+  if (path === '/crm') {
+    parseCrmQueryParams();
   }
   
   navigateToRoute(path, false);
