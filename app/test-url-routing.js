@@ -56,26 +56,26 @@ describe('Client-Side URL Routing Infrastructure', () => {
            'onpopstate should call navigateToRoute without pushState');
   });
 
-  it('should have initializeRouting function', async () => {
+  it('should have initializeFromURL function', async () => {
     const response = await fetchHTML('/dashboard');
     assert.strictEqual(response.status, 200);
     
-    // Check that initializeRouting function is defined
-    assert(response.html.includes('function initializeRouting()'), 
-           'initializeRouting function should be defined');
+    // Check that initializeFromURL function is defined
+    assert(response.html.includes('function initializeFromURL()'), 
+           'initializeFromURL function should be defined');
     assert(response.html.includes('const currentPath = window.location.pathname'), 
-           'initializeRouting should read current pathname');
-    assert(response.html.includes('navigateToRoute(currentPath, false)'), 
-           'initializeRouting should call navigateToRoute with current path');
+           'initializeFromURL should read current pathname');
+    assert(response.html.includes('navigateToRoute(path, false)'), 
+           'initializeFromURL should call navigateToRoute with processed path');
   });
 
   it('should initialize routing on page load', async () => {
     const response = await fetchHTML('/dashboard');
     assert.strictEqual(response.status, 200);
     
-    // Check that initializeRouting is called in init section
-    assert(response.html.includes('initializeRouting(); // Initialize URL-based routing'), 
-           'initializeRouting should be called on page load');
+    // Check that initializeFromURL is called in init section
+    assert(response.html.includes('initializeFromURL(); // Initialize from URL to show correct page on load'), 
+           'initializeFromURL should be called on page load');
   });
 
   it('should have nav items with proper href attributes', async () => {

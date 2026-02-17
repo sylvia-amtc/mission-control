@@ -2220,10 +2220,12 @@ window.onpopstate = function(event) {
   navigateToRoute(path, false);
 };
 
-// Initialize routing on page load
-function initializeRouting() {
+// Initialize from URL on page load - determines which page to show based on current URL
+function initializeFromURL() {
   const currentPath = window.location.pathname;
-  navigateToRoute(currentPath, false);
+  // Handle default route (/) to show dashboard
+  const path = currentPath === '/' ? '/dashboard' : currentPath;
+  navigateToRoute(path, false);
 }
 
 // Legacy navigate function for backward compatibility
@@ -2709,7 +2711,7 @@ async function submitPost(e) {
 loadAll().then(() => { 
   setTimeout(checkHashNavigation, 500); 
   loadCalendar(); 
-  initializeRouting(); // Initialize URL-based routing
+  initializeFromURL(); // Initialize from URL to show correct page on load
 });
 setInterval(incrementalRefresh, 30000);
 </script>

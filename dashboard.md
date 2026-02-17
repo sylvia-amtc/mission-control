@@ -1,5 +1,5 @@
 # Amtecco Mission Control Dashboard
-**Last Updated:** 2026-02-17 12:00 UTC
+**Last Updated:** 2026-02-17 16:00 UTC
 **Status:** OPERATIONAL
 
 ---
@@ -12,7 +12,7 @@
 | **Marketing & Content** | Max | 🟢 Active | 6/6 deploying | 🟢 Delivering | 2026-02-17 |
 | **Sales & Business Dev** | Elena | 🟢 Active | 5/5 deploying | 🟢 Delivering | 2026-02-17 |
 | **Engineering & Product** | Viktor | 🟢 Active | 12/12 deploying | 🟢 Delivering | 2026-02-17 |
-| **Design & Brand** | Zara | 🟡 Setting Up | 2/2 pending | 🟡 Onboarding | 2026-02-17 |
+| **Design & Brand** | Zara | 🟡 Setting Up | 2/2 pending | 🟡 Onboarding (no Google acct) | 2026-02-17 |
 | **Documentation & KB** | (via Viktor) | 🟢 Active | 2/2 deploying | 🟢 Provisioned | 2026-02-17 |
 | **Mission Control** | Sylvia | 🟢 Active | 3/3 deploying | 🟢 Dashboard Live | 2026-02-17 |
 
@@ -44,17 +44,21 @@
 ### Sales & Business Dev (Elena)
 | KPI | Target | Current | Status |
 |---|---|---|---|
-| Pipeline tracker | Operational | ✅ Structure built, moving to Twenty CRM | 🟢 Migrating |
+| Pipeline tracker | Operational | ✅ Structure built, 51 deals created in MC CRM | 🟢 Active |
 | Target account list | 20-30 accounts | ✅ 25 accounts across 3 tiers | 🟢 Complete |
 | Cross-sell playbook | Draft | ✅ Complete with bundle pricing | 🟢 Complete |
 | CRM deployment | Live | ✅ Twenty CRM at crm.amtc.tv | 🟢 Live |
+| Outreach infrastructure | Approved | 🔄 Full plan drafted (domains, warm-up, cadences) — awaiting David approval | 🟡 Pending approval |
+| Team activation | Operational | ✅ 6 sub-agents activated, schedules + tool reqs documented | 🟢 Active |
 | Customer CSV | From David | ❌ Not received | 🔴 Blocked |
 
 ### Engineering & Product (Viktor)
 | KPI | Target | Current | Status |
 |---|---|---|---|
 | Mission Control UI | Live | ✅ mc.amtc.tv — port 3000 responding | 🟢 Live |
-| AntFarm installed | Ready | ✅ v0.5.1, 3 workflows, feature-dev active (10+ runs overnight) | 🟢 Active |
+| AntFarm installed | Ready | ✅ v0.5.1, 3 workflows, feature-dev active (run #3: MC URL routing overhaul in progress) | 🟢 Active |
+| Org Chart UI | Live | ✅ Built & deployed — DB-backed, auto-refresh, wake-queue | 🟢 Live |
+| URL Routing Overhaul | In progress | 🔄 US-001 ✅, US-002 ✅, US-003 ✅ (verified), US-004+ pending | 🟡 In progress |
 | Twenty CRM deployed | Live | ✅ Docker, crm.amtc.tv | 🟢 Live |
 | Cloudflare tunnels | All services | ✅ 4 tunnels active | 🟢 Live |
 | CDN architecture | Deferred | — | ⏸️ Deferred by CEO |
@@ -122,11 +126,14 @@
    - ETA: Unknown
 
 ### High (Yellow)
-2. ~~**Mission Control UI down (port 3000)**~~ — ✅ **RESOLVED** as of 12:00 UTC
-   - mc.amtc.tv now responding (HTTP 200)
+2. ~~**Mission Control UI down (port 3000)**~~ — ✅ **RESOLVED**
 
+3. **Sales Outreach Infrastructure approval (Elena)** — Full plan in Google Docs, awaiting David
+   - Impact: Can't begin cold outreach or domain warm-up
+   - Owner: David (action item #137 in MC)
+   - ETA: Pending review
 
-3. **Social media API access (Nadia)** — Scoping requirements
+4. **Social media API access (Nadia)** — Scoping requirements
    - Impact: Limited competitive social monitoring
    - Owner: Nadia reporting needs → David approval
    - ETA: This week
@@ -160,14 +167,23 @@
 | **Marketing** | Content pieces (March) | 0 published, 4 planned | 4/month |
 | **Marketing** | SEO keywords identified | 20+ across SRT/CDN | Top 20 tracked |
 | **Sales** | Target accounts | 25 | 20-30 |
-| **Sales** | CRM status | Live (configuring) | Operational |
+| **Sales** | CRM deals created | 51 | — |
+| **Sales** | CRM status | Live (51 deals loaded) | Operational |
 | **Engineering** | Services deployed | 4 tunnels | — |
-| **Engineering** | AntFarm workflows | 3 ready, feature-dev active | — |
-| **Engineering** | Mission Control UI | 🟢 Live | Live |
+| **Engineering** | AntFarm workflows | 3 ready, run #3 in progress (URL routing) | — |
+| **Engineering** | URL Routing Stories | 3/10 complete (US-001–003) | 10/10 |
+| **Engineering** | Mission Control UI | 🟢 Live (+ org chart) | Live |
 
 ---
 
 ## 💡 Key Decisions Made (Feb 16-17)
+
+### Activity Since Last Update (12:00–16:00 UTC)
+- **Viktor/AntFarm:** URL routing overhaul stories US-001, US-002, US-003 implemented & verified (server SPA routes, History API router, nav link conversion)
+- **Viktor:** Live org chart built & deployed (DB-backed, 35 agents seeded, wake-queue, auto-refresh)
+- **Elena:** 51 CRM deals created via MC API; team activation complete (6 sub-agents, schedules, tool reqs); outreach ops plan drafted in Google Docs (action #137 for David)
+- **Max:** Reviewed action items; proposed approval workflow improvements (fixed review windows)
+- **Nadia:** Scanned MC action items; IDs 108 & 112 still blocked on David
 
 - All agents on Claude (Ollama rejected for production)
 - 3-tier model: Opus 4.6 (leadership) / Sonnet 4.5 (workhorse) / Haiku 4.5 (efficient)
