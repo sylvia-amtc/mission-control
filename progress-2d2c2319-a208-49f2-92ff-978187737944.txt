@@ -1,0 +1,25 @@
+# Progress Log
+Run: 2d2c2319-a208-49f2-92ff-978187737944
+Task: Mission Control Dashboard URL Routing Overhaul
+Started: 2026-02-17T15:22:00Z
+
+## Codebase Patterns
+
+- Express.js server using version 5.x with stricter route parsing (can't use wildcard `*` routes)
+- Server.js structure: middleware → API routes → SPA routes → server start
+- Static middleware in Express serves files from `public/` directory with catch-all 404 behavior
+- SPA routes must be placed AFTER all API routes to avoid conflicts
+- File serving works better with `fs.readFileSync()` + `res.send()` than `res.sendFile()` due to path resolution issues
+- Tests use Node.js built-in test runner (`node --test`)
+- PM2 process manager used for server management (`pm2 restart mission-control`)
+
+---
+
+## 2026-02-17T15:30:00Z - US-001: Add Server-Side SPA Route Handler
+- Implemented server-side SPA routing for Mission Control dashboard
+- Added explicit routes for all SPA paths: /dashboard, /kanban, /actions, /actions/:id, /gantt, /calendar, /org, /sync, /crm
+- Each route serves index.html to enable proper SPA routing behavior
+- Files changed: server.js, test-routing.js, package.json
+- **Learnings:** Express 5.x doesn't support wildcard routes (`*`) due to path-to-regexp parser changes; explicit routes work better. Static middleware placement matters - SPA routes must come after API routes but can work fine when properly positioned. File serving with `fs.readFileSync() + res.send()` is more reliable than `res.sendFile()` in this environment.
+
+---

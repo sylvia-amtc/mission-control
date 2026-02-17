@@ -2123,33 +2123,122 @@ async function wakeAgent(agentId, name) {
 // Auto-refresh org data every 15s
 setInterval(() => { if (!document.getElementById('sec-org').classList.contains('hidden')) loadOrgData(); }, 15000);
 
-// ═══ Navigation ═══
-function navigate(section){
-  document.querySelectorAll('#main > section').forEach(s=>s.classList.add('hidden'));
+// ═══ URL-Based Router Infrastructure ═══
+
+// Route-to-section mapping
+const routeMap = {
+  '/dashboard': 'command',
+  '/kanban': 'kanban', 
+  '/actions': 'actions',
+  '/gantt': 'gantt',
+  '/calendar': 'calendar',
+  '/org': 'org',
+  '/sync': 'sync',
+  '/crm': 'pipeline'
+};
+
+// Section-to-route mapping (reverse lookup)
+const sectionToRoute = {};
+Object.entries(routeMap).forEach(([route, section]) => {
+  sectionToRoute[section] = route;
+});
+
+// Router function using History API
+function navigateToRoute(path, pushState = true) {
+  // Handle action item deep links (/actions/123)
+  let section = routeMap[path];
+  let actionId = null;
+  
+  if (path.startsWith('/actions/')) {
+    section = 'actions';
+    actionId = path.split('/')[2];
+  }
+  
+  // Default to dashboard if route not found
+  if (!section) {
+    section = 'command';
+    path = '/dashboard';
+  }
+  
+  // Update URL if requested
+  if (pushState) {
+    history.pushState({ section, actionId }, '', path);
+  }
+  
+  // Show the correct section
+  document.querySelectorAll('#main > section').forEach(s => s.classList.add('hidden'));
   document.getElementById(`sec-${section}`).classList.remove('hidden');
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  
+  // Update active nav item
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelector(`.nav-item[data-section="${section}"]`)?.classList.add('active');
+  
+  // Handle special section logic
   if (section === 'sync') renderSyncStatus();
   if (section === 'org') loadOrgData();
+  
+  // Handle action item deep linking
+  if (section === 'actions' && actionId) {
+    // Set filter state and expand the specific action
+    actionCurrentFilter = 'all';
+    actionCurrentSeverity = '';
+    actionCurrentRequester = '';
+    actionCurrentPage = 1;
+    actionExpandedId = null;
+    
+    // Load actions and then expand the specific item
+    loadActionCounts().then(() => {
+      setTimeout(() => {
+        const actionElement = document.querySelector(`[data-action-id="${actionId}"]`);
+        if (actionElement) {
+          actionElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          actionElement.style.background = 'rgba(59, 130, 246, 0.1)';
+          setTimeout(() => {
+            actionElement.style.background = '';
+          }, 2000);
+        }
+      }, 100);
+    });
+  }
+  
   // Close mobile menu
   document.getElementById('sidebar').classList.remove('mobile-open');
 }
-document.querySelectorAll('.nav-item').forEach(n=>{n.addEventListener('click',e=>{e.preventDefault();navigate(n.dataset.section);});});
+
+// Handle browser back/forward buttons
+window.onpopstate = function(event) {
+  const path = window.location.pathname;
+  navigateToRoute(path, false);
+};
+
+// Initialize routing on page load
+function initializeRouting() {
+  const currentPath = window.location.pathname;
+  navigateToRoute(currentPath, false);
+}
+
+// Legacy navigate function for backward compatibility
+function navigate(section) {
+  const route = sectionToRoute[section] || '/dashboard';
+  navigateToRoute(route);
+}
+
+// Update nav items to use proper URLs and handle clicks
+document.querySelectorAll('.nav-item').forEach(n => {
+  const section = n.dataset.section;
+  const route = sectionToRoute[section] || '/dashboard';
+  n.href = route;
+  
+  n.addEventListener('click', e => {
+    e.preventDefault();
+    navigateToRoute(route);
+  });
+});
 
 // ═══ Go to Action Item ═══
 function goToActionItem(actionId) {
-  // Navigate to actions page and expand the specific action item
-  actionCurrentFilter = 'all';
-  actionCurrentSeverity = '';
-  actionCurrentRequester = '';
-  actionCurrentPage = 1;
-  navigate('actions');
-  // Set hash for deep-link
-  window.location.hash = `action-${actionId}`;
-  // Load and expand
-  actionExpandedId = null;
-  loadActionCounts();
-  loadActionItemsAndExpand(actionId);
+  // Navigate to actions page using new URL routing
+  navigateToRoute(`/actions/${actionId}`);
 }
 
 async function loadActionItemsAndExpand(targetId) {
@@ -2611,7 +2700,11 @@ async function submitPost(e) {
 }
 
 // ═══ Init ═══
-loadAll().then(() => { setTimeout(checkHashNavigation, 500); loadCalendar(); });
+loadAll().then(() => { 
+  setTimeout(checkHashNavigation, 500); 
+  loadCalendar(); 
+  initializeRouting(); // Initialize URL-based routing
+});
 setInterval(incrementalRefresh, 30000);
 </script>
 </body>

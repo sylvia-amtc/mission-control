@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node --test test-routing.js"
+    "test": "node --test test-routing.js test-url-routing.js"
   },
   "keywords": [],
   "author": "",
@@ -15,5 +15,8 @@
     "express": "^5.2.1",
     "marked": "^17.0.2",
     "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1"
   }
 }
