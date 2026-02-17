@@ -177,3 +177,28 @@ Files changed:
 Tests: All acceptance criteria verified - 8/8 tests pass
 Typecheck: Passes (node --check server.js)
 ---
+
+## 2026-02-17 19:05 - US-006: Add vendors navigation item
+- Added 💳 Vendors navigation item to sidebar with proper nav-item styling
+- Created complete vendors section with summary cards, filters, and table
+- Implemented URL routing for /vendors with proper section loading
+- Added loadVendors, renderVendorsTable, and syncVendors JavaScript functions
+- Created comprehensive test suite covering all navigation functionality
+- Added route mapping and navigation highlighting for active state
+- Included filters for status, category, and department with API integration
+- Navigation item positioned correctly in sidebar order
+- **Learnings:**
+  - Navigation items follow pattern: `<a href="/route" class="nav-item" data-section="section">Icon Text</a>`
+  - Router requires both routeMap entry and section loading in navigateToRoute function
+  - Test regex patterns need to account for HTML structure: `/<a[^>]*>💳 Vendors<\/a>/`
+  - JavaScript functions should call existing API patterns and handle filtering
+  - Summary cards follow consistent structure with metrics display
+
+Files changed:
+- app/public/index.html (added navigation item, vendors section, routing, JavaScript functions)
+- app/test-vendors-navigation.js (comprehensive test coverage with 11 test cases)
+- app/package.json (added test file to test script)
+
+Tests: All acceptance criteria verified - 11/11 tests pass
+All vendors navigation functionality working correctly
+---

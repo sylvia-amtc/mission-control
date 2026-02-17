@@ -1031,19 +1031,32 @@
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-[#2d3148]">
-                <th class="text-left px-5 py-3">Vendor</th>
-                <th class="text-left px-3 py-3">Category</th>
-                <th class="text-left px-3 py-3">Status</th>
-                <th class="text-left px-3 py-3">Owner</th>
-                <th class="text-left px-3 py-3">Department</th>
-                <th class="text-left px-3 py-3">Monthly Cost</th>
-                <th class="text-left px-3 py-3">Users</th>
-                <th class="text-left px-3 py-3">Actions</th>
+                <th class="text-left px-5 py-3 cursor-pointer hover:bg-[#252a40] transition-colors" onclick="sortVendorsTable('name')">
+                  Name <span id="sort-name" class="ml-1 text-[#64748b]">↕</span>
+                </th>
+                <th class="text-left px-3 py-3 cursor-pointer hover:bg-[#252a40] transition-colors" onclick="sortVendorsTable('category')">
+                  Category <span id="sort-category" class="ml-1 text-[#64748b]">↕</span>
+                </th>
+                <th class="text-left px-3 py-3 cursor-pointer hover:bg-[#252a40] transition-colors" onclick="sortVendorsTable('plan')">
+                  Plan <span id="sort-plan" class="ml-1 text-[#64748b]">↕</span>
+                </th>
+                <th class="text-left px-3 py-3 cursor-pointer hover:bg-[#252a40] transition-colors" onclick="sortVendorsTable('cost_monthly')">
+                  Cost/mo <span id="sort-cost_monthly" class="ml-1 text-[#64748b]">↕</span>
+                </th>
+                <th class="text-left px-3 py-3 cursor-pointer hover:bg-[#252a40] transition-colors" onclick="sortVendorsTable('owner')">
+                  Owner <span id="sort-owner" class="ml-1 text-[#64748b]">↕</span>
+                </th>
+                <th class="text-left px-3 py-3 cursor-pointer hover:bg-[#252a40] transition-colors" onclick="sortVendorsTable('department')">
+                  Department <span id="sort-department" class="ml-1 text-[#64748b]">↕</span>
+                </th>
+                <th class="text-left px-3 py-3 cursor-pointer hover:bg-[#252a40] transition-colors" onclick="sortVendorsTable('status')">
+                  Status <span id="sort-status" class="ml-1 text-[#64748b]">↕</span>
+                </th>
               </tr>
             </thead>
             <tbody id="vendors-table-body">
               <tr>
-                <td colspan="8" class="px-5 py-8 text-center text-[#64748b]">Loading vendors...</td>
+                <td colspan="7" class="px-5 py-8 text-center text-[#64748b]">Loading vendors...</td>
               </tr>
             </tbody>
           </table>
@@ -3578,6 +3591,7 @@ async function submitPost(e) {
 
 // ═══ Vendors ═══
 let VENDORS = [];
+let VENDOR_SORT = { column: null, direction: 'asc' };
 
 async function loadVendors() {
   try {
@@ -3618,7 +3632,7 @@ function renderVendorsTable() {
   const tbody = document.getElementById('vendors-table-body');
   
   if (!VENDORS || VENDORS.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="px-5 py-8 text-center text-[#64748b]">No vendors found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="px-5 py-8 text-center text-[#64748b]">No vendors found</td></tr>';
     return;
   }
   
@@ -3641,38 +3655,79 @@ function renderVendorsTable() {
       'other': 'Other'
     };
     
-    const users = vendor.users ? JSON.parse(vendor.users).length : 0;
-    const monthlyCost = vendor.cost_monthly ? `$${vendor.cost_monthly}` : '-';
+    // Format cost as currency ($X.XX)
+    const monthlyCost = vendor.cost_monthly ? 
+      `$${parseFloat(vendor.cost_monthly).toFixed(2)}` : '-';
     
     return `
       <tr class="cursor-pointer hover:bg-[#252a40]" onclick="openVendorDetail(${vendor.id})">
         <td class="px-5 py-3">
-          <div class="flex items-center gap-3">
-            <div>
-              <div class="font-medium text-[#e2e8f0]">${vendor.name}</div>
-              <div class="text-xs text-[#64748b]">${vendor.url || '-'}</div>
-            </div>
-          </div>
+          <div class="font-medium text-[#e2e8f0]">${vendor.name}</div>
         </td>
         <td class="px-3 py-3">
           <span class="text-xs px-2 py-1 rounded" style="background: rgba(59,130,246,0.2); color: #60a5fa;">
             ${categoryLabels[vendor.category] || vendor.category}
           </span>
         </td>
+        <td class="px-3 py-3 text-[#94a3b8]">${vendor.plan || '-'}</td>
+        <td class="px-3 py-3 text-[#94a3b8]">${monthlyCost}</td>
+        <td class="px-3 py-3 text-[#94a3b8]">${vendor.owner || '-'}</td>
+        <td class="px-3 py-3 text-[#94a3b8]">${vendor.department || '-'}</td>
         <td class="px-3 py-3">
           <span class="text-xs px-2 py-1 rounded" style="background: rgba(${statusColors[vendor.status] ? statusColors[vendor.status].slice(1).match(/.{2}/g).map(h => parseInt(h, 16)).join(',') : '100,116,139'}, 0.2); color: ${statusColors[vendor.status] || '#64748b'};">
             ${vendor.status?.replace('-', ' ') || 'unknown'}
           </span>
         </td>
-        <td class="px-3 py-3 text-[#94a3b8]">${vendor.owner || '-'}</td>
-        <td class="px-3 py-3 text-[#94a3b8]">${vendor.department || '-'}</td>
-        <td class="px-3 py-3 text-[#94a3b8]">${monthlyCost}</td>
-        <td class="px-3 py-3 text-[#94a3b8]">${users} user${users !== 1 ? 's' : ''}</td>
-        <td class="px-3 py-3">
-          <button onclick="event.stopPropagation(); openVendorModal(${vendor.id})" class="text-xs text-[#3b82f6] hover:text-[#60a5fa]">Edit</button>
-        </td>
       </tr>`;
   }).join('');
+}
+
+function sortVendorsTable(column) {
+  // Toggle direction if clicking same column, otherwise set to ascending
+  if (VENDOR_SORT.column === column) {
+    VENDOR_SORT.direction = VENDOR_SORT.direction === 'asc' ? 'desc' : 'asc';
+  } else {
+    VENDOR_SORT.column = column;
+    VENDOR_SORT.direction = 'asc';
+  }
+  
+  // Clear all sort indicators
+  document.querySelectorAll('[id^="sort-"]').forEach(el => {
+    el.textContent = '↕';
+    el.className = 'ml-1 text-[#64748b]';
+  });
+  
+  // Set current sort indicator
+  const sortEl = document.getElementById(`sort-${column}`);
+  if (sortEl) {
+    sortEl.textContent = VENDOR_SORT.direction === 'asc' ? '↑' : '↓';
+    sortEl.className = 'ml-1 text-[#3b82f6]';
+  }
+  
+  // Sort the vendors array
+  VENDORS.sort((a, b) => {
+    let aVal = a[column] || '';
+    let bVal = b[column] || '';
+    
+    // Special handling for numeric columns
+    if (column === 'cost_monthly') {
+      aVal = parseFloat(aVal) || 0;
+      bVal = parseFloat(bVal) || 0;
+    } else {
+      // String comparison (case insensitive)
+      aVal = aVal.toString().toLowerCase();
+      bVal = bVal.toString().toLowerCase();
+    }
+    
+    if (VENDOR_SORT.direction === 'asc') {
+      return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+    } else {
+      return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+    }
+  });
+  
+  // Re-render the table
+  renderVendorsTable();
 }
 
 function openVendorDetail(id) {
