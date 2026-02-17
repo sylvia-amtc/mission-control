@@ -74,3 +74,15 @@ Started: 2026-02-17T15:22:00Z
 - **Learnings:** Function naming in specifications matters - story explicitly requested initializeFromURL() rather than generic initializeRouting(). Default route (/) handling needs explicit checking rather than relying on fallthrough logic. Test coverage should directly match acceptance criteria for clear validation.
 
 ---
+## 2026-02-17T16:25:00Z - US-005: Implement Action Item Deep Linking
+- Enhanced toggleActionThread() function to update URL when expanding/collapsing action items (history.pushState to /actions/:id and back to /actions)
+- Integrated loadActionItemsAndExpand() function with navigateToRoute() for proper deep linking behavior
+- Updated action item section routing to use newer expand+scroll+highlight implementation instead of legacy selector-based approach
+- goToActionItem() function already used navigateToRoute() with /actions/:id URL format as required
+- Kanban "Go to Action Item" buttons already called goToActionItem() function correctly
+- Created comprehensive test suite (test-action-deep-linking.js) with 9 tests covering all acceptance criteria
+- All tests pass: URL changes on manual expand/collapse, deep linking works, server routes configured, routing integration complete
+- Files changed: app/public/index.html, app/test-action-deep-linking.js, app/package.json
+- **Learnings:** Action item deep linking had two implementations - consolidated to use the better loadActionItemsAndExpand() approach. URL state management in toggleActionThread() requires careful history.pushState() coordination with existing routing infrastructure. Test suites should validate both code existence and behavioral integration.
+
+---

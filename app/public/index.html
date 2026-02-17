@@ -1376,7 +1376,67 @@ function setActionFilter(f, type = 'status') {
     actionCurrentSeverity = '';
   }
   actionCurrentPage = 1;
+  updateActionURL();
   loadActionItems();
+}
+
+// Update URL with current action filter state
+function updateActionURL() {
+  if (window.location.pathname !== '/actions') return; // Only update URL if we're on the actions page
+  
+  const params = new URLSearchParams();
+  
+  if (actionCurrentFilter && actionCurrentFilter !== 'all') {
+    params.set('status', actionCurrentFilter);
+  }
+  
+  if (actionCurrentSeverity) {
+    params.set('severity', actionCurrentSeverity);
+  }
+  
+  if (actionCurrentRequester) {
+    params.set('department', actionCurrentRequester);
+  }
+  
+  const queryString = params.toString();
+  const newURL = '/actions' + (queryString ? '?' + queryString : '');
+  
+  // Only push state if URL actually changed
+  if (window.location.pathname + window.location.search !== newURL) {
+    history.pushState({}, '', newURL);
+  }
+}
+
+// Parse action query parameters from URL and update filter state
+function parseActionQueryParams() {
+  if (window.location.pathname !== '/actions') return;
+  
+  const params = new URLSearchParams(window.location.search);
+  
+  // Reset to defaults
+  actionCurrentFilter = 'open';
+  actionCurrentSeverity = '';
+  actionCurrentRequester = '';
+  
+  // Parse status parameter
+  const status = params.get('status');
+  if (status && ['open', 'awaiting_david', 'awaiting_vp', 'resolved', 'deferred', 'all'].includes(status)) {
+    actionCurrentFilter = status;
+  }
+  
+  // Parse severity parameter  
+  const severity = params.get('severity');
+  if (severity && ['red', 'yellow', 'blue'].includes(severity)) {
+    actionCurrentSeverity = severity;
+    actionCurrentFilter = 'all'; // When severity is set, show all statuses
+  }
+  
+  // Parse department parameter
+  const department = params.get('department');
+  if (department) {
+    actionCurrentRequester = decodeURIComponent(department);
+    actionCurrentFilter = 'all'; // When department is set, show all statuses
+  }
 }
 
 function statusLabel(s) {
@@ -2190,6 +2250,11 @@ function navigateToRoute(path, pushState = true) {
   if (section === 'sync') renderSyncStatus();
   if (section === 'org') loadOrgData();
   
+  // Parse query parameters for actions page
+  if (section === 'actions' && !actionId) {
+    parseActionQueryParams();
+  }
+  
   // Handle action item deep linking
   if (section === 'actions' && actionId) {
     // Use the newer loadActionItemsAndExpand function for better deep linking
@@ -2211,6 +2276,12 @@ function initializeFromURL() {
   const currentPath = window.location.pathname;
   // Handle default route (/) to show dashboard
   const path = currentPath === '/' ? '/dashboard' : currentPath;
+  
+  // Parse query parameters for actions page
+  if (path === '/actions') {
+    parseActionQueryParams();
+  }
+  
   navigateToRoute(path, false);
 }
 
