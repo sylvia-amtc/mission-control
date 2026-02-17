@@ -166,6 +166,10 @@ app.post('/api/tasks', (req, res) => {
     blocker_note: req.body.blocker_note || '',
     milestone: req.body.milestone || '',
     position: req.body.position || 0,
+    start_date: req.body.start_date || new Date().toISOString().split('T')[0],
+    end_date: req.body.end_date || req.body.due_date || null,
+    progress: req.body.progress || 0,
+    is_milestone: req.body.is_milestone ? 1 : 0,
   };
   const result = stmts.insertTask.run(t);
   const task = stmts.getTask.get(result.lastInsertRowid);
@@ -191,6 +195,10 @@ app.put('/api/tasks/:id', (req, res) => {
     blocker_note: req.body.blocker_note ?? existing.blocker_note,
     milestone: req.body.milestone ?? existing.milestone,
     position: req.body.position ?? existing.position,
+    start_date: req.body.start_date ?? existing.start_date,
+    end_date: req.body.end_date ?? existing.end_date,
+    progress: req.body.progress !== undefined ? req.body.progress : (existing.progress || 0),
+    is_milestone: req.body.is_milestone !== undefined ? (req.body.is_milestone ? 1 : 0) : (existing.is_milestone || 0),
   };
   stmts.updateTask.run(t);
   const task = stmts.getTask.get(req.params.id);
@@ -281,6 +289,49 @@ app.get('/api/kpis/history/:department/:kpi', (req, res) => {
 app.post('/api/kpis/sync', (req, res) => {
   syncKPIs();
   res.json({ ok: true });
+});
+
+// ─── Vendors API ────────────────────────────────────────────────
+app.get('/api/vendors', (req, res) => {
+  const { status, department, category } = req.query;
+  let vendors;
+  
+  // Apply filters using appropriate prepared statements
+  if (status && department && category) {
+    // Multiple filters: get all vendors and filter in application
+    vendors = stmts.getAllVendors.all().filter(v => {
+      return v.status === status && v.department === department && v.category === category;
+    });
+  } else if (status && department) {
+    vendors = stmts.getAllVendors.all().filter(v => {
+      return v.status === status && v.department === department;
+    });
+  } else if (status && category) {
+    vendors = stmts.getAllVendors.all().filter(v => {
+      return v.status === status && v.category === category;
+    });
+  } else if (department && category) {
+    vendors = stmts.getAllVendors.all().filter(v => {
+      return v.department === department && v.category === category;
+    });
+  } else if (status) {
+    vendors = stmts.getVendorsByStatus.all(status);
+  } else if (department) {
+    vendors = stmts.getVendorsByDept.all(department);
+  } else if (category) {
+    vendors = stmts.getVendorsByCategory.all(category);
+  } else {
+    vendors = stmts.getAllVendors.all();
+  }
+  
+  // Parse JSON users array for each vendor
+  vendors = vendors.map(vendor => ({
+    ...vendor,
+    users: JSON.parse(vendor.users || '[]')
+  }));
+  
+  logActivity('view', 'vendors', null, `Vendors list viewed (${vendors.length} results)`, 'user');
+  res.json(vendors);
 });
 
 // ─── Action Items API ───────────────────────────────────────────
@@ -872,6 +923,10 @@ app.post('/api/tasks/sync', (req, res) => {
         blocker_note: '',
         milestone: '',
         position: 999,
+        start_date: item.start_date || new Date().toISOString().split('T')[0],
+        end_date: item.end_date || item.due_date || null,
+        progress: item.progress || 0,
+        is_milestone: item.is_milestone ? 1 : 0,
       });
       results.push({ id: result.lastInsertRowid, action: 'created', title });
     }
@@ -1100,6 +1155,7 @@ app.get('/kanban', serveIndexHtml);
 app.get('/actions', serveIndexHtml);
 app.get('/actions/:id', serveIndexHtml);
 app.get('/gantt', serveIndexHtml);
+app.get('/timeline', serveIndexHtml);
 app.get('/calendar', serveIndexHtml);
 app.get('/org', serveIndexHtml);
 app.get('/sync', serveIndexHtml);
