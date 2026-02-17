@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node --test test-routing.js test-url-routing.js"
+    "test": "node --test test-routing.js test-url-routing.js test-navigation-links.js"
   },
   "keywords": [],
   "author": "",
