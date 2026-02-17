@@ -171,7 +171,7 @@
     <nav class="flex-1 py-2 overflow-y-auto" id="nav">
       <a href="/dashboard" class="nav-item active" data-section="command">⚡ Command Center</a>
       <a href="/kanban" class="nav-item" data-section="kanban">📋 Kanban Board</a>
-      <a href="/gantt" class="nav-item" data-section="gantt">📊 Timeline</a>
+      <a href="/timeline" class="nav-item" data-section="gantt">📊 Timeline</a>
       <a href="/crm" class="nav-item" data-section="pipeline">🔄 CRM Pipeline</a>
       <a href="/funnel" class="nav-item" data-section="funnel">💰 Revenue Funnel</a>
       <a href="/departments" class="nav-item" data-section="departments">🏢 Departments</a>
@@ -280,13 +280,74 @@
 
     <!-- ═══ Gantt / Timeline ═══ -->
     <section id="sec-gantt" class="hidden">
-      <div class="flex justify-between items-center mb-6 flex-header">
-        <h2 class="text-2xl font-bold">Timeline</h2>
-        <div class="flex gap-2">
-          <select id="gantt-zoom" class="form-input text-xs" style="width:auto;padding:6px 12px;">
-            <option value="day">Day</option><option value="week" selected>Week</option><option value="month">Month</option><option value="quarter">Quarter</option>
+      <style>
+        .tl-summary { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px; }
+        .tl-summary .card { padding:14px 18px; }
+        .tl-toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+        .tl-zoom-btn { padding:6px 14px; font-size:12px; border-radius:8px; cursor:pointer; border:1px solid var(--border); background:var(--surface); color:var(--text-secondary); transition:all 0.15s; }
+        .tl-zoom-btn:hover { background:var(--surface-elevated); }
+        .tl-zoom-btn.active { background:var(--accent); color:white; border-color:var(--accent); }
+        .tl-search { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:6px 12px; color:var(--text-primary); font-size:12px; width:200px; }
+        .tl-search:focus { outline:none; border-color:var(--accent); }
+        .tl-gantt-wrap { position:relative; overflow:hidden; border-radius:12px; border:1px solid var(--border); background:var(--surface); }
+        .tl-gantt-scroll { overflow-x:auto; overflow-y:auto; max-height:calc(100vh - 340px); position:relative; }
+        .tl-gantt-scroll::-webkit-scrollbar { height:8px; width:8px; }
+        .tl-header-row { display:flex; position:sticky; top:0; z-index:10; background:var(--sidebar); border-bottom:2px solid var(--border); }
+        .tl-header-cell { font-size:10px; text-align:center; color:var(--text-muted); border-right:1px solid #1e2235; padding:6px 0; flex-shrink:0; }
+        .tl-body { position:relative; }
+        .tl-row { display:flex; align-items:center; min-height:40px; border-bottom:1px solid var(--border); transition:background 0.1s; }
+        .tl-row:hover { background:var(--surface-elevated); }
+        .tl-label { width:240px; min-width:240px; padding:6px 12px; font-size:12px; border-right:1px solid var(--border); position:sticky; left:0; z-index:5; background:var(--surface); }
+        .tl-row:hover .tl-label { background:var(--surface-elevated); }
+        .tl-bars { position:relative; flex:1; height:40px; }
+        .tl-bar { position:absolute; height:26px; top:7px; border-radius:6px; font-size:10px; display:flex; align-items:center; padding:0 8px; white-space:nowrap; overflow:hidden; cursor:pointer; transition:all 0.15s; min-width:8px; z-index:2; user-select:none; }
+        .tl-bar:hover { filter:brightness(1.2); transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,0.4); z-index:10; }
+        .tl-bar.status-in_progress { background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(255,255,255,0.08) 4px,rgba(255,255,255,0.08) 8px); }
+        .tl-bar.status-done { opacity:0.85; }
+        .tl-bar.status-backlog { background:transparent !important; border:2px dashed; box-sizing:border-box; }
+        .tl-bar.overdue { box-shadow:0 0 0 2px var(--red); }
+        .tl-bar .tl-progress { position:absolute; left:0; top:0; bottom:0; border-radius:6px; opacity:0.3; background:white; transition:width 0.3s; }
+        .tl-bar .tl-bar-text { position:relative; z-index:1; }
+        .tl-milestone { position:absolute; top:10px; width:18px; height:18px; transform:rotate(45deg); border:2px solid #f59e0b; background:var(--surface); cursor:pointer; z-index:3; transition:all 0.15s; }
+        .tl-milestone:hover { transform:rotate(45deg) scale(1.2); box-shadow:0 0 12px rgba(245,158,11,0.5); }
+        .tl-milestone.completed { background:#22c55e; border-color:#22c55e; }
+        .tl-dep-line { position:absolute; pointer-events:auto; cursor:pointer; z-index:1; }
+        .tl-dep-line:hover { filter:brightness(1.5); }
+        .tl-today-line { position:absolute; top:0; bottom:0; width:2px; background:var(--red); z-index:6; pointer-events:none; }
+        .tl-today-label { position:absolute; top:-18px; font-size:9px; color:var(--red); font-weight:700; transform:translateX(-50%); white-space:nowrap; }
+        .tl-swimlane { font-size:11px; font-weight:600; color:var(--text-secondary); padding:10px 12px; background:var(--sidebar); border-bottom:1px solid var(--border); cursor:pointer; user-select:none; display:flex; align-items:center; gap:8px; }
+        .tl-swimlane:hover { background:var(--surface-elevated); }
+        .tl-swimlane .tl-collapse { transition:transform 0.2s; }
+        .tl-swimlane .tl-collapse.collapsed { transform:rotate(-90deg); }
+        .tl-tooltip { position:fixed; z-index:200; background:var(--surface-elevated); border:1px solid var(--border); border-radius:10px; padding:12px 16px; font-size:12px; max-width:300px; box-shadow:0 8px 24px rgba(0,0,0,0.5); pointer-events:none; }
+        .tl-legend { display:flex; gap:16px; flex-wrap:wrap; margin-top:12px; }
+        .tl-legend-item { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-muted); }
+        /* Task Detail Modal */
+        .tl-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); z-index:100; display:flex; align-items:center; justify-content:center; }
+        .tl-modal { background:var(--surface); border:1px solid var(--border); border-radius:12px; width:100%; max-width:700px; max-height:90vh; overflow-y:auto; }
+        .tl-modal-header { padding:20px 24px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+        .tl-modal-body { padding:24px; }
+        .tl-modal-footer { padding:16px 24px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:8px; }
+        .tl-progress-slider { -webkit-appearance:none; width:100%; height:6px; border-radius:3px; background:var(--bg); outline:none; }
+        .tl-progress-slider::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:var(--accent); cursor:pointer; }
+        @media(max-width:768px) { .tl-summary { grid-template-columns:repeat(2,1fr); } .tl-label { width:120px !important; min-width:120px !important; font-size:10px !important; } }
+      </style>
+
+      <!-- Summary Row -->
+      <div class="tl-summary" id="tl-summary"></div>
+
+      <!-- Header & Toolbar -->
+      <div class="flex justify-between items-start mb-4 flex-header">
+        <h2 class="text-2xl font-bold">📊 Timeline</h2>
+        <div class="tl-toolbar">
+          <input type="text" id="tl-search" class="tl-search" placeholder="🔍 Search tasks..." oninput="renderGantt()">
+          <select id="tl-group-by" class="form-input text-xs" style="width:auto;padding:6px 12px;" onchange="renderGantt()">
+            <option value="department">Group: Department</option>
+            <option value="assignee">Group: Assignee</option>
+            <option value="status">Group: Status</option>
+            <option value="priority">Group: Priority</option>
           </select>
-          <select id="gantt-filter-dept" class="form-input text-xs" style="width:auto;padding:6px 12px;">
+          <select id="gantt-filter-dept" class="form-input text-xs" style="width:auto;padding:6px 12px;" onchange="renderGantt()">
             <option value="">All Departments</option>
             <option value="Research & Intelligence">Research & Intelligence</option>
             <option value="Marketing & Content">Marketing & Content</option>
@@ -295,18 +356,76 @@
             <option value="Operations">Operations</option>
             <option value="Design & Brand">Design & Brand</option>
           </select>
+          <select id="tl-filter-status" class="form-input text-xs" style="width:auto;padding:6px 12px;" onchange="renderGantt()">
+            <option value="">All Statuses</option>
+            <option value="backlog">Not Started</option>
+            <option value="in_progress">In Progress</option>
+            <option value="review">Review</option>
+            <option value="done">Complete</option>
+            <option value="overdue">Overdue</option>
+          </select>
+          <select id="tl-filter-assignee" class="form-input text-xs" style="width:auto;padding:6px 12px;" onchange="renderGantt()">
+            <option value="">All Assignees</option>
+          </select>
         </div>
       </div>
-      <div class="card overflow-hidden"><div id="gantt-chart" class="gantt-container" style="min-height:300px;"></div></div>
-      <div class="mt-4 flex gap-6 text-xs text-[#64748b] flex-wrap">
-        <span class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-blue-500 inline-block"></span> In Progress</span>
-        <span class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-green-500 inline-block"></span> Done</span>
-        <span class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-slate-500 inline-block"></span> Backlog</span>
-        <span class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-yellow-500 inline-block"></span> Review</span>
-        <span class="flex items-center gap-2"><span class="w-4 h-4 border-2 border-amber-400 inline-block" style="transform:rotate(45deg);width:10px;height:10px;"></span> Milestone</span>
-        <span class="flex items-center gap-2"><span class="w-4 h-0.5 bg-red-500 inline-block"></span> Today</span>
+      <div class="flex justify-between items-center mb-3">
+        <div class="flex gap-1" id="tl-zoom-btns">
+          <button class="tl-zoom-btn" data-zoom="day" onclick="setTlZoom('day')">Day</button>
+          <button class="tl-zoom-btn active" data-zoom="week" onclick="setTlZoom('week')">Week</button>
+          <button class="tl-zoom-btn" data-zoom="month" onclick="setTlZoom('month')">Month</button>
+          <button class="tl-zoom-btn" data-zoom="quarter" onclick="setTlZoom('quarter')">Quarter</button>
+        </div>
+        <div class="flex gap-2 items-center">
+          <input type="date" id="tl-date-from" class="form-input text-xs" style="width:auto;padding:4px 8px;" onchange="renderGantt()">
+          <span class="text-xs text-[#64748b]">to</span>
+          <input type="date" id="tl-date-to" class="form-input text-xs" style="width:auto;padding:4px 8px;" onchange="renderGantt()">
+          <button onclick="tlJumpToday()" class="btn-secondary text-xs px-3 py-1.5">📍 Today</button>
+        </div>
       </div>
+
+      <!-- Gantt Chart -->
+      <div class="tl-gantt-wrap">
+        <div class="tl-gantt-scroll" id="tl-gantt-scroll">
+          <div id="gantt-chart" style="position:relative;"></div>
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div class="tl-legend" id="tl-legend">
+        <span class="tl-legend-item"><span style="width:12px;height:12px;border-radius:3px;background:#3b82f6;display:inline-block;"></span> Engineering</span>
+        <span class="tl-legend-item"><span style="width:12px;height:12px;border-radius:3px;background:#8b5cf6;display:inline-block;"></span> Research & Intel</span>
+        <span class="tl-legend-item"><span style="width:12px;height:12px;border-radius:3px;background:#f97316;display:inline-block;"></span> Marketing</span>
+        <span class="tl-legend-item"><span style="width:12px;height:12px;border-radius:3px;background:#22c55e;display:inline-block;"></span> Sales & BD</span>
+        <span class="tl-legend-item"><span style="width:12px;height:12px;border-radius:3px;background:#ec4899;display:inline-block;"></span> Design & Brand</span>
+        <span class="tl-legend-item"><span style="width:12px;height:12px;border-radius:3px;background:#64748b;display:inline-block;"></span> Operations</span>
+        <span class="tl-legend-item"><span style="display:inline-block;width:14px;height:4px;background:repeating-linear-gradient(45deg,#fff 0 2px,transparent 2px 4px);border-radius:2px;"></span> In Progress</span>
+        <span class="tl-legend-item"><span style="display:inline-block;width:14px;height:14px;border:2px dashed #94a3b8;border-radius:3px;"></span> Not Started</span>
+        <span class="tl-legend-item"><span style="display:inline-block;width:14px;height:14px;border:2px solid #ef4444;border-radius:3px;"></span> Overdue</span>
+        <span class="tl-legend-item"><span style="display:inline-block;width:12px;height:12px;transform:rotate(45deg);border:2px solid #f59e0b;"></span> Milestone</span>
+        <span class="tl-legend-item"><span style="display:inline-block;width:16px;height:2px;background:#ef4444;"></span> Today</span>
+      </div>
+
+      <!-- Keyboard shortcuts hint -->
+      <div class="text-xs text-[#64748b] mt-2">⌨ Arrow keys: scroll · +/−: zoom · T: jump to today</div>
     </section>
+
+    <!-- Timeline Task Detail Modal -->
+    <div id="tl-task-modal" class="hidden">
+      <div class="tl-modal-overlay" onclick="closeTlTaskModal(event)">
+        <div class="tl-modal" onclick="event.stopPropagation()">
+          <div class="tl-modal-header">
+            <h3 class="text-lg font-bold" id="tl-modal-title">Task Details</h3>
+            <button onclick="closeTlTaskModal()" class="text-[#94a3b8] hover:text-white text-xl">&times;</button>
+          </div>
+          <div class="tl-modal-body" id="tl-modal-body"></div>
+          <div class="tl-modal-footer" id="tl-modal-footer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tooltip container -->
+    <div id="tl-tooltip" class="tl-tooltip hidden" style="display:none;"></div>
 
     <!-- ═══ CRM Pipeline ═══ -->
     <section id="sec-pipeline" class="hidden">
@@ -1312,45 +1431,434 @@ async function saveDeal(e){
 }
 async function syncCRM(){await api('/api/crm/sync');loadPipeline();}
 
-// ═══ Gantt Timeline ═══
-function renderGantt(){
-  const container=document.getElementById('gantt-chart');
-  const zoom=document.getElementById('gantt-zoom')?.value||'week';
-  const deptFilter=document.getElementById('gantt-filter-dept')?.value||'';
-  let tasks=(GANTT.tasks||[]).map(t=>({...t,depends_on:typeof t.depends_on==='string'?JSON.parse(t.depends_on||'[]'):(t.depends_on||[])}));
-  let milestones=GANTT.milestones||[];
-  if(deptFilter){tasks=tasks.filter(t=>t.department===deptFilter);milestones=milestones.filter(m=>m.department===deptFilter);}
-  const now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  const allDates=[today];
-  tasks.forEach(t=>{if(t.due_date)allDates.push(new Date(t.due_date));if(t.created_at)allDates.push(new Date(t.created_at));});
-  milestones.forEach(m=>{if(m.target_date)allDates.push(new Date(m.target_date));});
-  let rangeStart,rangeEnd;
-  if(zoom==='day'){rangeStart=new Date(today);rangeStart.setDate(rangeStart.getDate()-3);rangeEnd=new Date(today);rangeEnd.setDate(rangeEnd.getDate()+14);}
-  else if(zoom==='week'){rangeStart=new Date(today);rangeStart.setDate(rangeStart.getDate()-7);rangeEnd=new Date(today);rangeEnd.setDate(rangeEnd.getDate()+60);}
-  else if(zoom==='month'){rangeStart=new Date(today);rangeStart.setMonth(rangeStart.getMonth()-1);rangeEnd=new Date(today);rangeEnd.setMonth(rangeEnd.getMonth()+6);}
-  else{rangeStart=new Date(today);rangeStart.setMonth(rangeStart.getMonth()-3);rangeEnd=new Date(today);rangeEnd.setMonth(rangeEnd.getMonth()+12);}
-  if(allDates.length){const minD=new Date(Math.min(...allDates.map(d=>d.getTime()))),maxD=new Date(Math.max(...allDates.map(d=>d.getTime())));if(minD<rangeStart)rangeStart=new Date(minD);if(maxD>rangeEnd)rangeEnd=new Date(maxD.getTime()+7*864e5);}
-  const totalDays=Math.ceil((rangeEnd-rangeStart)/864e5);
-  const dayWidth=zoom==='day'?40:zoom==='week'?16:zoom==='month'?5:2;
-  const chartWidth=totalDays*dayWidth;
-  const labelWidth=220;
-  function dateToX(d){return Math.round(((new Date(d)-rangeStart)/864e5)*dayWidth);}
-  let headerHTML='';
-  if(zoom==='day'){for(let d=new Date(rangeStart);d<rangeEnd;d.setDate(d.getDate()+1)){const x=dateToX(d);const isToday=d.toDateString()===today.toDateString();headerHTML+=`<div class="gantt-header-cell" style="position:absolute;left:${x}px;width:${dayWidth}px;${isToday?'color:#ef4444;font-weight:700;':''}">${d.getDate()}/${d.getMonth()+1}</div>`;}}
-  else if(zoom==='week'){for(let d=new Date(rangeStart);d<rangeEnd;d.setDate(d.getDate()+7)){const x=dateToX(d);headerHTML+=`<div class="gantt-header-cell" style="position:absolute;left:${x}px;width:${7*dayWidth}px;">${d.getDate()} ${d.toLocaleString('en',{month:'short'})}</div>`;}}
-  else if(zoom==='month'){for(let d=new Date(rangeStart.getFullYear(),rangeStart.getMonth(),1);d<rangeEnd;d.setMonth(d.getMonth()+1)){const x=dateToX(d);const dim=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();headerHTML+=`<div class="gantt-header-cell" style="position:absolute;left:${x}px;width:${dim*dayWidth}px;">${d.toLocaleString('en',{month:'short'})} ${d.getFullYear()}</div>`;}}
-  else{for(let d=new Date(rangeStart.getFullYear(),Math.floor(rangeStart.getMonth()/3)*3,1);d<rangeEnd;d.setMonth(d.getMonth()+3)){const x=dateToX(d);const qEnd=new Date(d.getFullYear(),d.getMonth()+3,0);const qDays=Math.ceil((qEnd-d)/864e5);headerHTML+=`<div class="gantt-header-cell" style="position:absolute;left:${x}px;width:${qDays*dayWidth}px;">Q${Math.floor(d.getMonth()/3)+1} ${d.getFullYear()}</div>`;}}
-  const departments=[...new Set(tasks.map(t=>t.department))].sort();
-  if(!departments.length&&!milestones.length){container.innerHTML='<div class="p-8 text-center text-[#64748b]">No tasks with dates to display.</div>';return;}
-  const statusColor={backlog:'#64748b',in_progress:'#3b82f6',review:'#eab308',done:'#22c55e'};
-  const todayX=dateToX(today);
-  let rowsHTML='';
-  if(milestones.length){rowsHTML+=`<div class="gantt-swimlane-label">◆ Milestones</div>`;for(const m of milestones){if(!m.target_date)continue;const x=dateToX(m.target_date);rowsHTML+=`<div class="gantt-row"><div class="gantt-label text-[#94a3b8] truncate">◆ ${m.name}</div><div class="gantt-bars" style="width:${chartWidth}px;"><div class="gantt-milestone ${m.status==='completed'?'completed':''}" style="left:${x-8}px;" title="${m.name} — ${m.target_date} (${m.status})"></div></div></div>`;}}
-  for(const dept of departments){const dTasks=tasks.filter(t=>t.department===dept);const color=deptColor(dept);rowsHTML+=`<div class="gantt-swimlane-label" style="border-left:3px solid ${color};">${dept} (${dTasks.length})</div>`;for(const t of dTasks){const startDate=t.created_at?new Date(t.created_at):today;const endDate=t.due_date?new Date(t.due_date):new Date(startDate.getTime()+7*864e5);const x1=Math.max(0,dateToX(startDate)),x2=dateToX(endDate),w=Math.max(4,x2-x1);const bg=statusColor[t.status]||'#64748b';const opacity=t.status==='done'?'0.6':'1';rowsHTML+=`<div class="gantt-row"><div class="gantt-label truncate ${t.is_blocker?'text-red-400':'text-[#e2e8f0]'}">${t.is_blocker?'🚫 ':''}${t.title}</div><div class="gantt-bars" style="width:${chartWidth}px;"><div class="gantt-bar" style="left:${x1}px;width:${w}px;background:${bg};opacity:${opacity};" title="${t.title}\n${t.status} | ${t.due_date||'no due date'}\n${t.owner||''}">${zoom!=='quarter'?t.title.substring(0,20):''}</div></div></div>`;}}
-  container.innerHTML=`<div style="display:flex;"><div style="width:${labelWidth}px;min-width:${labelWidth}px;"></div><div style="position:relative;width:${chartWidth}px;height:28px;border-bottom:2px solid #2d3148;">${headerHTML}</div></div><div style="position:relative;">${rowsHTML}<div style="position:absolute;left:${labelWidth+todayX}px;top:0;bottom:0;width:2px;background:#ef4444;z-index:5;pointer-events:none;"><div style="position:absolute;top:-16px;left:-16px;font-size:9px;color:#ef4444;font-weight:700;">TODAY</div></div></div>`;
+// ═══ Gantt Timeline (Overhauled) ═══
+let tlZoom = 'week';
+let tlCollapsed = {};
+let tlDragState = null;
+
+const DEPT_COLORS = {
+  'Engineering & Product': '#3b82f6',
+  'Research & Intelligence': '#8b5cf6',
+  'Marketing & Content': '#f97316',
+  'Sales & Business Dev': '#22c55e',
+  'Design & Brand': '#ec4899',
+  'Operations': '#64748b',
+  'Documentation & KB': '#06b6d4',
+  'Mission Control': '#6366f1',
+};
+function tlDeptColor(d) { for (const [k,v] of Object.entries(DEPT_COLORS)) { if (d && d.includes(k.split(' ')[0])) return v; } return '#64748b'; }
+
+function setTlZoom(z) { tlZoom = z; document.querySelectorAll('.tl-zoom-btn').forEach(b => b.classList.toggle('active', b.dataset.zoom === z)); renderGantt(); }
+function tlJumpToday() { document.getElementById('tl-date-from').value = ''; document.getElementById('tl-date-to').value = ''; renderGantt(); setTimeout(() => { const todayLine = document.querySelector('.tl-today-line'); if (todayLine) todayLine.scrollIntoView({ inline: 'center', behavior: 'smooth' }); }, 100); }
+
+function renderTlSummary(tasks, milestones) {
+  const now = new Date();
+  const total = tasks.length;
+  const done = tasks.filter(t => t.status === 'done').length;
+  const overdue = tasks.filter(t => t.end_date && new Date(t.end_date) < now && t.status !== 'done').length;
+  const totalProgress = total ? Math.round(tasks.reduce((s, t) => s + (t.progress || 0), 0) / total) : 0;
+  const upcoming = milestones.filter(m => m.target_date && new Date(m.target_date) >= now && m.status !== 'completed').sort((a,b) => new Date(a.target_date) - new Date(b.target_date))[0];
+  
+  document.getElementById('tl-summary').innerHTML = `
+    <div class="card" style="border-top:2px solid var(--accent)"><div class="text-xs text-[#94a3b8]">Overall Progress</div><div class="text-2xl font-bold text-[#3b82f6]">${totalProgress}%</div><div class="text-xs text-[#64748b]">${done}/${total} tasks complete</div><div style="height:4px;background:var(--bg);border-radius:2px;margin-top:6px;"><div style="height:100%;width:${totalProgress}%;background:var(--accent);border-radius:2px;transition:width 0.5s;"></div></div></div>
+    <div class="card" style="border-top:2px solid ${overdue ? 'var(--red)' : 'var(--green)'}"><div class="text-xs text-[#94a3b8]">Overdue Tasks</div><div class="text-2xl font-bold ${overdue ? 'text-red-400' : 'text-green-400'}">${overdue}</div><div class="text-xs text-[#64748b]">${overdue ? 'need attention' : 'all on track'}</div></div>
+    <div class="card" style="border-top:2px solid var(--purple)"><div class="text-xs text-[#94a3b8]">In Progress</div><div class="text-2xl font-bold text-purple-400">${tasks.filter(t=>t.status==='in_progress').length}</div><div class="text-xs text-[#64748b]">${tasks.filter(t=>t.status==='review').length} in review</div></div>
+    <div class="card" style="border-top:2px solid var(--amber)"><div class="text-xs text-[#94a3b8]">Next Milestone</div><div class="text-sm font-bold text-amber-400">${upcoming ? upcoming.name : 'None'}</div><div class="text-xs text-[#64748b]">${upcoming ? upcoming.target_date : '—'}</div></div>
+  `;
 }
-document.getElementById('gantt-zoom')?.addEventListener('change',renderGantt);
-document.getElementById('gantt-filter-dept')?.addEventListener('change',renderGantt);
+
+function populateAssigneeFilter(tasks) {
+  const assignees = [...new Set(tasks.map(t => t.owner).filter(Boolean))].sort();
+  const sel = document.getElementById('tl-filter-assignee');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All Assignees</option>' + assignees.map(a => `<option value="${a}">${a}</option>`).join('');
+  sel.value = cur;
+}
+
+function renderGantt() {
+  const container = document.getElementById('gantt-chart');
+  const zoom = tlZoom;
+  const deptFilter = document.getElementById('gantt-filter-dept')?.value || '';
+  const statusFilter = document.getElementById('tl-filter-status')?.value || '';
+  const assigneeFilter = document.getElementById('tl-filter-assignee')?.value || '';
+  const searchQ = (document.getElementById('tl-search')?.value || '').toLowerCase();
+  const groupBy = document.getElementById('tl-group-by')?.value || 'department';
+  const dateFrom = document.getElementById('tl-date-from')?.value;
+  const dateTo = document.getElementById('tl-date-to')?.value;
+
+  let tasks = (GANTT.tasks || []).map(t => ({ ...t, depends_on: typeof t.depends_on === 'string' ? JSON.parse(t.depends_on || '[]') : (t.depends_on || []) }));
+  let milestones = GANTT.milestones || [];
+
+  // Filters
+  if (deptFilter) { tasks = tasks.filter(t => t.department === deptFilter); milestones = milestones.filter(m => m.department === deptFilter); }
+  const now = new Date();
+  if (statusFilter === 'overdue') tasks = tasks.filter(t => t.end_date && new Date(t.end_date) < now && t.status !== 'done');
+  else if (statusFilter) tasks = tasks.filter(t => t.status === statusFilter);
+  if (assigneeFilter) tasks = tasks.filter(t => t.owner === assigneeFilter);
+  if (searchQ) tasks = tasks.filter(t => t.title.toLowerCase().includes(searchQ) || (t.owner || '').toLowerCase().includes(searchQ));
+
+  renderTlSummary(tasks, milestones);
+  populateAssigneeFilter(GANTT.tasks || []);
+
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const allDates = [today];
+  tasks.forEach(t => { if (t.start_date) allDates.push(new Date(t.start_date)); if (t.end_date) allDates.push(new Date(t.end_date)); if (t.due_date) allDates.push(new Date(t.due_date)); if (t.created_at) allDates.push(new Date(t.created_at)); });
+  milestones.forEach(m => { if (m.target_date) allDates.push(new Date(m.target_date)); });
+
+  let rangeStart, rangeEnd;
+  if (dateFrom && dateTo) { rangeStart = new Date(dateFrom); rangeEnd = new Date(dateTo); }
+  else {
+    if (zoom === 'day') { rangeStart = new Date(today); rangeStart.setDate(rangeStart.getDate() - 3); rangeEnd = new Date(today); rangeEnd.setDate(rangeEnd.getDate() + 14); }
+    else if (zoom === 'week') { rangeStart = new Date(today); rangeStart.setDate(rangeStart.getDate() - 7); rangeEnd = new Date(today); rangeEnd.setDate(rangeEnd.getDate() + 60); }
+    else if (zoom === 'month') { rangeStart = new Date(today); rangeStart.setMonth(rangeStart.getMonth() - 1); rangeEnd = new Date(today); rangeEnd.setMonth(rangeEnd.getMonth() + 6); }
+    else { rangeStart = new Date(today); rangeStart.setMonth(rangeStart.getMonth() - 3); rangeEnd = new Date(today); rangeEnd.setMonth(rangeEnd.getMonth() + 12); }
+    if (allDates.length > 1) { const minD = new Date(Math.min(...allDates.map(d => d.getTime()))), maxD = new Date(Math.max(...allDates.map(d => d.getTime()))); if (minD < rangeStart) rangeStart = new Date(minD.getTime() - 3 * 864e5); if (maxD > rangeEnd) rangeEnd = new Date(maxD.getTime() + 7 * 864e5); }
+  }
+
+  const totalDays = Math.ceil((rangeEnd - rangeStart) / 864e5);
+  const dayWidth = zoom === 'day' ? 48 : zoom === 'week' ? 18 : zoom === 'month' ? 6 : 2.5;
+  const chartWidth = totalDays * dayWidth;
+  const labelWidth = 240;
+
+  function dateToX(d) { return Math.round(((new Date(d) - rangeStart) / 864e5) * dayWidth); }
+
+  // Header
+  let headerCells = '';
+  if (zoom === 'day') { for (let d = new Date(rangeStart); d < rangeEnd; d.setDate(d.getDate() + 1)) { const x = dateToX(d); const isTd = d.toDateString() === today.toDateString(); const isWe = d.getDay() === 0 || d.getDay() === 6; headerCells += `<div class="tl-header-cell" style="position:absolute;left:${x}px;width:${dayWidth}px;${isTd ? 'color:#ef4444;font-weight:700;' : ''}${isWe ? 'background:#151828;' : ''}">${d.getDate()}<br>${d.toLocaleString('en', { month: 'short' })}</div>`; } }
+  else if (zoom === 'week') { for (let d = new Date(rangeStart); d < rangeEnd; d.setDate(d.getDate() + 7)) { const x = dateToX(d); headerCells += `<div class="tl-header-cell" style="position:absolute;left:${x}px;width:${7 * dayWidth}px;">${d.getDate()} ${d.toLocaleString('en', { month: 'short' })}</div>`; } }
+  else if (zoom === 'month') { for (let d = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1); d < rangeEnd; d.setMonth(d.getMonth() + 1)) { const x = dateToX(d); const dim = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); headerCells += `<div class="tl-header-cell" style="position:absolute;left:${x}px;width:${dim * dayWidth}px;">${d.toLocaleString('en', { month: 'short' })} ${d.getFullYear()}</div>`; } }
+  else { for (let d = new Date(rangeStart.getFullYear(), Math.floor(rangeStart.getMonth() / 3) * 3, 1); d < rangeEnd; d.setMonth(d.getMonth() + 3)) { const x = dateToX(d); const qEnd = new Date(d.getFullYear(), d.getMonth() + 3, 0); const qDays = Math.ceil((qEnd - d) / 864e5); headerCells += `<div class="tl-header-cell" style="position:absolute;left:${x}px;width:${qDays * dayWidth}px;">Q${Math.floor(d.getMonth() / 3) + 1} ${d.getFullYear()}</div>`; } }
+
+  if (!tasks.length && !milestones.length) { container.innerHTML = '<div class="p-12 text-center text-[#64748b]"><div class="text-3xl mb-2">📊</div>No tasks to display on timeline.</div>'; return; }
+
+  // Group tasks
+  let groups = {};
+  if (groupBy === 'department') { tasks.forEach(t => { const g = t.department || 'Unassigned'; if (!groups[g]) groups[g] = []; groups[g].push(t); }); }
+  else if (groupBy === 'assignee') { tasks.forEach(t => { const g = t.owner || 'Unassigned'; if (!groups[g]) groups[g] = []; groups[g].push(t); }); }
+  else if (groupBy === 'status') { const order = ['in_progress', 'review', 'backlog', 'done']; tasks.forEach(t => { const g = t.status || 'backlog'; if (!groups[g]) groups[g] = []; groups[g].push(t); }); groups = Object.fromEntries(order.filter(k => groups[k]).map(k => [k, groups[k]])); }
+  else if (groupBy === 'priority') { const order = ['critical', 'high', 'medium', 'low']; tasks.forEach(t => { const g = t.priority || 'medium'; if (!groups[g]) groups[g] = []; groups[g].push(t); }); groups = Object.fromEntries(order.filter(k => groups[k]).map(k => [k, groups[k]])); }
+
+  const todayX = dateToX(today);
+  let rowsHTML = '';
+  let rowIndex = 0;
+  const taskRowMap = {}; // id -> rowIndex for dependency arrows
+
+  // Milestones group
+  if (milestones.length) {
+    const gKey = '__milestones__';
+    const isCollapsed = tlCollapsed[gKey];
+    rowsHTML += `<div class="tl-swimlane" onclick="toggleTlGroup('${gKey}')"><span class="tl-collapse ${isCollapsed ? 'collapsed' : ''}">▼</span> ◆ Milestones (${milestones.length})</div>`;
+    if (!isCollapsed) {
+      for (const m of milestones) {
+        if (!m.target_date) continue;
+        const x = dateToX(m.target_date);
+        rowsHTML += `<div class="tl-row"><div class="tl-label text-[#94a3b8] truncate" title="${m.name}">◆ ${m.name}</div><div class="tl-bars" style="width:${chartWidth}px;"><div class="tl-milestone ${m.status === 'completed' ? 'completed' : ''}" style="left:${x - 9}px;" onclick="openTlMilestoneModal(${m.id})" onmouseenter="showTlTooltip(event,'<b>${m.name.replace(/'/g,'\\\'')}</b><br>Date: ${m.target_date}<br>Status: ${m.status}<br>${(m.description||'').substring(0,80).replace(/'/g,'\\\'')}')" onmouseleave="hideTlTooltip()"></div></div></div>`;
+        rowIndex++;
+      }
+    }
+  }
+
+  // Task groups
+  for (const [groupName, groupTasks] of Object.entries(groups)) {
+    const gKey = 'g_' + groupName;
+    const isCollapsed = tlCollapsed[gKey];
+    const color = groupBy === 'department' ? tlDeptColor(groupName) : 'var(--accent)';
+    const label = groupBy === 'status' ? { backlog: '⬜ Not Started', in_progress: '🔵 In Progress', review: '🟡 Review', done: '✅ Done' }[groupName] || groupName : groupBy === 'priority' ? { critical: '🔴 Critical', high: '🟠 High', medium: '🟡 Medium', low: '🟢 Low' }[groupName] || groupName : groupName;
+    const groupDone = groupTasks.filter(t => t.status === 'done').length;
+    const groupPct = groupTasks.length ? Math.round(groupTasks.reduce((s, t) => s + (t.progress || 0), 0) / groupTasks.length) : 0;
+
+    rowsHTML += `<div class="tl-swimlane" style="border-left:3px solid ${color};" onclick="toggleTlGroup('${gKey}')"><span class="tl-collapse ${isCollapsed ? 'collapsed' : ''}">▼</span> ${label} (${groupTasks.length}) <span class="text-xs text-[#64748b] ml-auto">${groupPct}% · ${groupDone} done</span></div>`;
+
+    if (!isCollapsed) {
+      for (const t of groupTasks) {
+        taskRowMap[t.id] = rowIndex;
+        const startDate = t.start_date ? new Date(t.start_date) : (t.created_at ? new Date(t.created_at) : today);
+        const endDate = t.end_date ? new Date(t.end_date) : (t.due_date ? new Date(t.due_date) : new Date(startDate.getTime() + 7 * 864e5));
+        const x1 = Math.max(0, dateToX(startDate)), x2 = dateToX(endDate), w = Math.max(8, x2 - x1);
+        const dColor = tlDeptColor(t.department);
+        const isOverdue = t.end_date && new Date(t.end_date) < now && t.status !== 'done';
+        const prog = t.progress || 0;
+        const progW = Math.round((prog / 100) * w);
+        const titleTrunc = zoom !== 'quarter' && w > 60 ? t.title.substring(0, Math.floor(w / 6)) : '';
+
+        rowsHTML += `<div class="tl-row"><div class="tl-label truncate ${t.is_blocker ? 'text-red-400' : 'text-[#e2e8f0]'}" title="${t.title.replace(/"/g, '&quot;')}">${t.is_blocker ? '🚫 ' : ''}${t.title}</div><div class="tl-bars" style="width:${chartWidth}px;" data-task-id="${t.id}"><div class="tl-bar status-${t.status} ${isOverdue ? 'overdue' : ''}" style="left:${x1}px;width:${w}px;background:${dColor};" data-task-id="${t.id}" onclick="openTlTaskModal(${t.id})" onmouseenter="showTlTooltip(event, tlTaskTooltip(${t.id}))" onmouseleave="hideTlTooltip()" onmousedown="startTlDrag(event,${t.id},'move')"><div class="tl-progress" style="width:${progW}px;"></div><span class="tl-bar-text">${titleTrunc}</span></div></div></div>`;
+        rowIndex++;
+      }
+    }
+  }
+
+  // Dependency arrows (SVG overlay)
+  let depSVG = '';
+  const rowH = 40;
+  const swimH = 39;
+  // We'll calculate positions after render — use a simpler approach
+  // Arrows are rendered as absolute positioned elements
+
+  const headerHeight = 32;
+  container.innerHTML = `
+    <div style="display:flex;position:sticky;top:0;z-index:10;background:var(--sidebar);">
+      <div style="width:${labelWidth}px;min-width:${labelWidth}px;background:var(--sidebar);border-bottom:2px solid var(--border);border-right:1px solid var(--border);padding:8px 12px;font-size:10px;color:var(--text-muted);font-weight:600;">TASK</div>
+      <div style="position:relative;width:${chartWidth}px;height:${headerHeight}px;border-bottom:2px solid var(--border);">${headerCells}</div>
+    </div>
+    <div style="position:relative;" id="tl-body">${rowsHTML}
+      <div class="tl-today-line" style="left:${labelWidth + todayX}px;"><div class="tl-today-label">TODAY</div></div>
+    </div>`;
+
+  // After render, draw dependency arrows
+  setTimeout(() => renderTlDependencies(tasks, taskRowMap, dateToX, labelWidth, chartWidth), 50);
+}
+
+function renderTlDependencies(tasks, taskRowMap, dateToX, labelWidth, chartWidth) {
+  const body = document.getElementById('tl-body');
+  if (!body) return;
+  // Remove old SVG
+  const oldSvg = body.querySelector('.tl-dep-svg');
+  if (oldSvg) oldSvg.remove();
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.classList.add('tl-dep-svg');
+  svg.style.cssText = `position:absolute;top:0;left:${labelWidth}px;width:${chartWidth}px;height:100%;pointer-events:none;z-index:4;`;
+
+  const now = new Date();
+  for (const t of tasks) {
+    if (!t.depends_on || !t.depends_on.length) continue;
+    const toRow = taskRowMap[t.id];
+    if (toRow === undefined) continue;
+    const toStart = t.start_date ? new Date(t.start_date) : (t.created_at ? new Date(t.created_at) : now);
+    const toX = dateToX(toStart);
+
+    for (const depId of t.depends_on) {
+      const fromRow = taskRowMap[depId];
+      if (fromRow === undefined) continue;
+      const dep = tasks.find(x => x.id === depId);
+      if (!dep) continue;
+      const fromEnd = dep.end_date ? new Date(dep.end_date) : (dep.due_date ? new Date(dep.due_date) : now);
+      const fromX = dateToX(fromEnd);
+
+      // Calculate Y positions (approximate: swimlane headers shift things)
+      // For now use row indices * 40 + offset
+      const fromY = fromRow * 40 + 60;
+      const toY = toRow * 40 + 60;
+
+      const isBlocking = dep.status !== 'done' && t.status !== 'done';
+      const color = isBlocking ? '#ef4444' : '#4b5563';
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const midX = (fromX + toX) / 2;
+      path.setAttribute('d', `M${fromX},${fromY} C${midX},${fromY} ${midX},${toY} ${toX},${toY}`);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', color);
+      path.setAttribute('stroke-width', isBlocking ? '2' : '1.5');
+      path.setAttribute('stroke-dasharray', isBlocking ? '' : '4,4');
+      path.setAttribute('opacity', '0.6');
+      svg.appendChild(path);
+
+      // Arrowhead
+      const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      arrow.setAttribute('points', `${toX},${toY} ${toX - 6},${toY - 4} ${toX - 6},${toY + 4}`);
+      arrow.setAttribute('fill', color);
+      arrow.setAttribute('opacity', '0.6');
+      svg.appendChild(arrow);
+    }
+  }
+  body.appendChild(svg);
+}
+
+function toggleTlGroup(key) { tlCollapsed[key] = !tlCollapsed[key]; renderGantt(); }
+
+// Tooltip
+function showTlTooltip(e, html) {
+  const tt = document.getElementById('tl-tooltip');
+  tt.innerHTML = html;
+  tt.style.display = 'block';
+  tt.classList.remove('hidden');
+  const rect = tt.getBoundingClientRect();
+  let x = e.clientX + 12, y = e.clientY + 12;
+  if (x + rect.width > window.innerWidth) x = e.clientX - rect.width - 12;
+  if (y + rect.height > window.innerHeight) y = e.clientY - rect.height - 12;
+  tt.style.left = x + 'px';
+  tt.style.top = y + 'px';
+}
+function hideTlTooltip() { const tt = document.getElementById('tl-tooltip'); tt.style.display = 'none'; tt.classList.add('hidden'); }
+
+function tlTaskTooltip(taskId) {
+  const t = (GANTT.tasks || []).find(x => x.id === taskId);
+  if (!t) return '';
+  const prog = t.progress || 0;
+  const isOverdue = t.end_date && new Date(t.end_date) < new Date() && t.status !== 'done';
+  return `<div><b>${t.title}</b></div>
+    <div style="margin:6px 0;display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-size:11px;">
+      <span style="color:var(--text-muted)">Status:</span><span>${t.status.replace('_', ' ')}${isOverdue ? ' <span style="color:#ef4444">⚠ OVERDUE</span>' : ''}</span>
+      <span style="color:var(--text-muted)">Dates:</span><span>${t.start_date || '?'} → ${t.end_date || t.due_date || '?'}</span>
+      ${t.owner ? `<span style="color:var(--text-muted)">Assignee:</span><span>${t.owner}</span>` : ''}
+      <span style="color:var(--text-muted)">Progress:</span><span>${prog}%</span>
+    </div>
+    <div style="height:4px;background:var(--bg);border-radius:2px;"><div style="height:100%;width:${prog}%;background:var(--accent);border-radius:2px;"></div></div>`;
+}
+
+// Task Detail Modal
+async function openTlTaskModal(taskId) {
+  const t = (GANTT.tasks || []).find(x => x.id === taskId);
+  if (!t) return;
+  hideTlTooltip();
+  const deps = typeof t.depends_on === 'string' ? JSON.parse(t.depends_on || '[]') : (t.depends_on || []);
+  const depNames = deps.map(id => { const d = (GANTT.tasks || []).find(x => x.id === id); return d ? d.title : `#${id}`; });
+  const blocksNames = (GANTT.tasks || []).filter(x => { const xd = typeof x.depends_on === 'string' ? JSON.parse(x.depends_on || '[]') : (x.depends_on || []); return xd.includes(t.id); }).map(x => x.title);
+
+  document.getElementById('tl-modal-title').textContent = t.title;
+  document.getElementById('tl-modal-body').innerHTML = `
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div><label class="form-label">Title</label><input type="text" id="tl-ed-title" class="form-input" value="${t.title.replace(/"/g, '&quot;')}"></div>
+      <div><label class="form-label">Assignee</label><input type="text" id="tl-ed-owner" class="form-input" value="${(t.owner || '').replace(/"/g, '&quot;')}"></div>
+    </div>
+    <div class="mb-4"><label class="form-label">Description</label><textarea id="tl-ed-desc" class="form-input" style="height:80px;">${(t.description || '').replace(/</g, '&lt;')}</textarea></div>
+    <div class="grid grid-cols-3 gap-4 mb-4">
+      <div><label class="form-label">Department</label><select id="tl-ed-dept" class="form-input"><option>Operations</option><option>Research & Intelligence</option><option>Marketing & Content</option><option>Sales & Business Dev</option><option>Engineering & Product</option><option>Design & Brand</option></select></div>
+      <div><label class="form-label">Status</label><select id="tl-ed-status" class="form-input"><option value="backlog">Backlog</option><option value="in_progress">In Progress</option><option value="review">Review</option><option value="done">Done</option></select></div>
+      <div><label class="form-label">Priority</label><select id="tl-ed-priority" class="form-input"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+    </div>
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div><label class="form-label">Start Date</label><input type="date" id="tl-ed-start" class="form-input" value="${t.start_date || ''}"></div>
+      <div><label class="form-label">End Date</label><input type="date" id="tl-ed-end" class="form-input" value="${t.end_date || t.due_date || ''}"></div>
+    </div>
+    <div class="mb-4"><label class="form-label">Progress: <span id="tl-ed-prog-val">${t.progress || 0}</span>%</label><input type="range" id="tl-ed-progress" class="tl-progress-slider" min="0" max="100" value="${t.progress || 0}" oninput="document.getElementById('tl-ed-prog-val').textContent=this.value"><div style="height:6px;background:var(--bg);border-radius:3px;margin-top:4px;"><div id="tl-ed-prog-bar" style="height:100%;width:${t.progress || 0}%;background:var(--accent);border-radius:3px;transition:width 0.2s;"></div></div></div>
+    ${deps.length ? `<div class="mb-4"><label class="form-label">⛓ Blocked by</label><div class="flex flex-wrap gap-2">${depNames.map(n => `<span class="text-xs px-2 py-1 rounded bg-red-900/30 text-red-300">${n}</span>`).join('')}</div></div>` : ''}
+    ${blocksNames.length ? `<div class="mb-4"><label class="form-label">🔗 Blocks</label><div class="flex flex-wrap gap-2">${blocksNames.map(n => `<span class="text-xs px-2 py-1 rounded bg-amber-900/30 text-amber-300">${n}</span>`).join('')}</div></div>` : ''}
+    ${t.action_item_id ? `<div class="mb-4"><button onclick="goToActionItem(${t.action_item_id});closeTlTaskModal()" class="btn-secondary text-xs">📝 Go to Action Item</button></div>` : ''}
+  `;
+
+  // Set dropdown values
+  document.getElementById('tl-ed-dept').value = t.department || 'Operations';
+  document.getElementById('tl-ed-status').value = t.status || 'backlog';
+  document.getElementById('tl-ed-priority').value = t.priority || 'medium';
+
+  // Progress slider live update
+  document.getElementById('tl-ed-progress').oninput = function() {
+    document.getElementById('tl-ed-prog-val').textContent = this.value;
+    document.getElementById('tl-ed-prog-bar').style.width = this.value + '%';
+  };
+
+  document.getElementById('tl-modal-footer').innerHTML = `
+    <button onclick="navigateToRoute('/kanban')" class="btn-ghost text-xs">📋 Go to Kanban</button>
+    <button onclick="closeTlTaskModal()" class="btn-ghost text-sm">Cancel</button>
+    <button onclick="saveTlTask(${t.id})" class="btn-primary text-sm">💾 Save Changes</button>
+  `;
+
+  document.getElementById('tl-task-modal').classList.remove('hidden');
+}
+
+async function saveTlTask(id) {
+  const data = {
+    title: document.getElementById('tl-ed-title').value,
+    description: document.getElementById('tl-ed-desc').value,
+    owner: document.getElementById('tl-ed-owner').value,
+    department: document.getElementById('tl-ed-dept').value,
+    status: document.getElementById('tl-ed-status').value,
+    priority: document.getElementById('tl-ed-priority').value,
+    start_date: document.getElementById('tl-ed-start').value || null,
+    end_date: document.getElementById('tl-ed-end').value || null,
+    due_date: document.getElementById('tl-ed-end').value || null,
+    progress: parseInt(document.getElementById('tl-ed-progress').value) || 0,
+  };
+  await api(`/api/tasks/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+  closeTlTaskModal();
+  GANTT = await api('/api/gantt');
+  renderGantt();
+}
+
+function closeTlTaskModal(e) { if (e && e.target !== e.currentTarget) return; document.getElementById('tl-task-modal').classList.add('hidden'); }
+
+// Milestone modal
+function openTlMilestoneModal(id) {
+  const m = (GANTT.milestones || []).find(x => x.id === id);
+  if (!m) return;
+  hideTlTooltip();
+  document.getElementById('tl-modal-title').textContent = '◆ ' + m.name;
+  document.getElementById('tl-modal-body').innerHTML = `
+    <div class="mb-4"><label class="form-label">Name</label><div class="text-lg font-bold">${m.name}</div></div>
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div><label class="form-label">Department</label><div>${m.department || '—'}</div></div>
+      <div><label class="form-label">Target Date</label><div>${m.target_date || '—'}</div></div>
+    </div>
+    <div class="mb-4"><label class="form-label">Status</label><span class="text-xs px-2 py-1 rounded ${m.status === 'completed' ? 'bg-green-900/50 text-green-300' : m.status === 'in_progress' ? 'bg-blue-900/50 text-blue-300' : 'bg-slate-700 text-[#94a3b8]'}">${m.status}</span></div>
+    <div class="mb-4"><label class="form-label">Description</label><div class="text-sm text-[#94a3b8]">${m.description || 'No description'}</div></div>
+  `;
+  document.getElementById('tl-modal-footer').innerHTML = '<button onclick="closeTlTaskModal()" class="btn-secondary text-sm">Close</button>';
+  document.getElementById('tl-task-modal').classList.remove('hidden');
+}
+
+// Drag to move/resize bars
+function startTlDrag(e, taskId, mode) {
+  if (e.button !== 0) return;
+  const bar = e.currentTarget;
+  const startX = e.clientX;
+  const origLeft = parseInt(bar.style.left);
+  const origWidth = parseInt(bar.style.width) || bar.offsetWidth;
+  
+  // Determine if resizing (clicking near right edge)
+  const rect = bar.getBoundingClientRect();
+  const isResize = e.clientX > rect.right - 8;
+  
+  const onMove = (ev) => {
+    const dx = ev.clientX - startX;
+    if (isResize) {
+      bar.style.width = Math.max(8, origWidth + dx) + 'px';
+    } else {
+      bar.style.left = (origLeft + dx) + 'px';
+    }
+    bar.style.opacity = '0.7';
+  };
+  
+  const onUp = async (ev) => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    bar.style.opacity = '';
+    
+    const dx = ev.clientX - startX;
+    if (Math.abs(dx) < 5) return; // Click, not drag
+    
+    const dayWidth = tlZoom === 'day' ? 48 : tlZoom === 'week' ? 18 : tlZoom === 'month' ? 6 : 2.5;
+    const daysDelta = Math.round(dx / dayWidth);
+    if (daysDelta === 0) { renderGantt(); return; }
+    
+    const t = (GANTT.tasks || []).find(x => x.id === taskId);
+    if (!t) return;
+    
+    const sd = new Date(t.start_date || t.created_at || new Date());
+    const ed = new Date(t.end_date || t.due_date || new Date(sd.getTime() + 7 * 864e5));
+    
+    if (isResize) {
+      ed.setDate(ed.getDate() + daysDelta);
+      await api(`/api/tasks/${taskId}`, { method: 'PUT', body: JSON.stringify({ end_date: ed.toISOString().split('T')[0], due_date: ed.toISOString().split('T')[0] }) });
+    } else {
+      sd.setDate(sd.getDate() + daysDelta);
+      ed.setDate(ed.getDate() + daysDelta);
+      await api(`/api/tasks/${taskId}`, { method: 'PUT', body: JSON.stringify({ start_date: sd.toISOString().split('T')[0], end_date: ed.toISOString().split('T')[0], due_date: ed.toISOString().split('T')[0] }) });
+    }
+    GANTT = await api('/api/gantt');
+    renderGantt();
+  };
+  
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (document.getElementById('sec-gantt').classList.contains('hidden')) return;
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  const scroll = document.getElementById('tl-gantt-scroll');
+  if (!scroll) return;
+  if (e.key === 'ArrowRight') { scroll.scrollLeft += 100; e.preventDefault(); }
+  if (e.key === 'ArrowLeft') { scroll.scrollLeft -= 100; e.preventDefault(); }
+  if (e.key === 'ArrowDown') { scroll.scrollTop += 50; e.preventDefault(); }
+  if (e.key === 'ArrowUp') { scroll.scrollTop -= 50; e.preventDefault(); }
+  if (e.key === '+' || e.key === '=') { const zooms = ['day', 'week', 'month', 'quarter']; const i = zooms.indexOf(tlZoom); if (i > 0) setTlZoom(zooms[i - 1]); e.preventDefault(); }
+  if (e.key === '-') { const zooms = ['day', 'week', 'month', 'quarter']; const i = zooms.indexOf(tlZoom); if (i < zooms.length - 1) setTlZoom(zooms[i + 1]); e.preventDefault(); }
+  if (e.key === 't' || e.key === 'T') { tlJumpToday(); e.preventDefault(); }
+});
 
 // ═══ Departments ═══
 function renderDepartments(){
@@ -2374,6 +2882,7 @@ const routeMap = {
   '/kanban': 'kanban', 
   '/actions': 'actions',
   '/gantt': 'gantt',
+  '/timeline': 'gantt',
   '/calendar': 'calendar',
   '/org': 'org',
   '/sync': 'sync',

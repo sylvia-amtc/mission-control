@@ -243,6 +243,20 @@ try { db.exec("UPDATE action_items SET last_activity = updated_at WHERE last_act
 try { db.exec("ALTER TABLE tasks ADD COLUMN action_item_id INTEGER REFERENCES action_items(id)"); } catch(e) { /* already exists */ }
 try { db.exec("CREATE INDEX IF NOT EXISTS idx_tasks_action_item ON tasks(action_item_id)"); } catch(e) {}
 
+// Timeline fields
+try { db.exec("ALTER TABLE tasks ADD COLUMN start_date TEXT"); } catch(e) {}
+try { db.exec("ALTER TABLE tasks ADD COLUMN end_date TEXT"); } catch(e) {}
+try { db.exec("ALTER TABLE tasks ADD COLUMN progress INTEGER DEFAULT 0"); } catch(e) {}
+try { db.exec("ALTER TABLE tasks ADD COLUMN is_milestone INTEGER DEFAULT 0"); } catch(e) {}
+// Backfill
+try {
+  db.exec("UPDATE tasks SET start_date = date(created_at) WHERE start_date IS NULL");
+  db.exec("UPDATE tasks SET end_date = due_date WHERE end_date IS NULL AND due_date IS NOT NULL");
+  db.exec("UPDATE tasks SET progress = 100 WHERE status = 'done' AND (progress IS NULL OR progress = 0)");
+  db.exec("UPDATE tasks SET progress = 50 WHERE status = 'in_progress' AND (progress IS NULL OR progress = 0)");
+  db.exec("UPDATE tasks SET progress = 75 WHERE status = 'review' AND (progress IS NULL OR progress = 0)");
+} catch(e) {}
+
 // ─── Seed agent_status if empty ─────────────────────────────────
 const agentCount = db.prepare('SELECT COUNT(*) as c FROM agent_status').get().c;
 if (agentCount === 0) {
@@ -448,11 +462,11 @@ const stmts = {
   getTasksByStatus: db.prepare('SELECT * FROM tasks WHERE status = ? ORDER BY position, created_at'),
   getTasksByDept: db.prepare('SELECT * FROM tasks WHERE department = ? ORDER BY position, created_at'),
   getTask: db.prepare('SELECT * FROM tasks WHERE id = ?'),
-  insertTask: db.prepare(`INSERT INTO tasks (title, description, department, owner, priority, status, due_date, depends_on, is_blocker, blocker_note, milestone, position) 
-    VALUES (@title, @description, @department, @owner, @priority, @status, @due_date, @depends_on, @is_blocker, @blocker_note, @milestone, @position)`),
+  insertTask: db.prepare(`INSERT INTO tasks (title, description, department, owner, priority, status, due_date, depends_on, is_blocker, blocker_note, milestone, position, start_date, end_date, progress, is_milestone) 
+    VALUES (@title, @description, @department, @owner, @priority, @status, @due_date, @depends_on, @is_blocker, @blocker_note, @milestone, @position, @start_date, @end_date, @progress, @is_milestone)`),
   updateTask: db.prepare(`UPDATE tasks SET title=@title, description=@description, department=@department, owner=@owner, 
     priority=@priority, status=@status, due_date=@due_date, depends_on=@depends_on, is_blocker=@is_blocker, 
-    blocker_note=@blocker_note, milestone=@milestone, position=@position, updated_at=datetime('now') WHERE id=@id`),
+    blocker_note=@blocker_note, milestone=@milestone, position=@position, start_date=@start_date, end_date=@end_date, progress=@progress, is_milestone=@is_milestone, updated_at=datetime('now') WHERE id=@id`),
   updateTaskStatus: db.prepare(`UPDATE tasks SET status=@status, position=@position, updated_at=datetime('now') WHERE id=@id`),
   deleteTask: db.prepare('DELETE FROM tasks WHERE id = ?'),
 
