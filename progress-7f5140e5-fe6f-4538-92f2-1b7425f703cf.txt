@@ -86,6 +86,29 @@ Tests: All acceptance criteria verified:
 All tests pass (133/133 passed)
 ---
 
+## 2026-02-17 18:52 - US-005: Create vendors summary endpoint
+- Added GET /api/vendors/summary endpoint to server.js that returns aggregated vendor metrics
+- Calculates total_monthly_spend for active vendors only, count_by_status, count_by_department, active_count, and trial_count
+- Handles empty database gracefully with appropriate default values
+- Added activity logging for summary endpoint access
+- Created comprehensive test suite in test-vendors-summary.js covering all 8 acceptance criteria
+- Added test file to package.json test script for continuous integration
+- **Learnings:** 
+  - Endpoint follows existing JSON API response patterns in codebase
+  - Activity logging uses logActivity('view', 'vendors_summary', null, message, actor) pattern
+  - Empty database handling returns consistent zero/empty object structure
+  - Summary calculations use array filter/reduce patterns for aggregating data
+  - Department names handle empty strings by defaulting to 'Unassigned'
+
+Files changed:
+- app/server.js (added GET /api/vendors/summary endpoint)
+- app/test-vendors-summary.js (comprehensive test coverage with 8 test cases)
+- app/package.json (added new test file to test script)
+
+Tests: All acceptance criteria verified - 8/8 tests pass
+Typecheck: Passes (node --check server.js)
+---
+
 ## 2026-02-17 18:32 - US-003: Create GET /api/vendors endpoint with filtering
 - Added GET /api/vendors endpoint to server.js following existing API patterns
 - Implemented filtering support for ?status, ?department, ?category query parameters
