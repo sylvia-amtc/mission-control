@@ -1080,8 +1080,14 @@ function renderKanban(){
     sortables.push(new Sortable(document.getElementById(`col-${s}`),{group:'kanban',animation:150,ghostClass:'sortable-ghost',dragClass:'sortable-drag',onEnd:async(evt)=>{const items=[];evt.to.querySelectorAll('.kanban-card').forEach((c,i)=>items.push({id:+c.dataset.id,status:evt.to.dataset.status,position:i}));if(evt.from!==evt.to){evt.from.querySelectorAll('.kanban-card').forEach((c,i)=>items.push({id:+c.dataset.id,status:evt.from.dataset.status,position:i}));}await api('/api/tasks/reorder',{method:'POST',body:JSON.stringify({items})});loadTasks();}}));
   }
 }
-document.getElementById('kanban-filter-dept')?.addEventListener('change',renderKanban);
-document.getElementById('kanban-filter-priority')?.addEventListener('change',renderKanban);
+document.getElementById('kanban-filter-dept')?.addEventListener('change', function() {
+  updateKanbanURL();
+  renderKanban();
+});
+document.getElementById('kanban-filter-priority')?.addEventListener('change', function() {
+  updateKanbanURL();
+  renderKanban();
+});
 
 // ═══ Task Modal ═══
 function openTaskModal(task){
@@ -1436,6 +1442,49 @@ function parseActionQueryParams() {
   if (department) {
     actionCurrentRequester = decodeURIComponent(department);
     actionCurrentFilter = 'all'; // When department is set, show all statuses
+  }
+}
+
+// Parse kanban query parameters from URL and update filter state
+function parseKanbanQueryParams() {
+  if (window.location.pathname !== '/kanban') return;
+  
+  const params = new URLSearchParams(window.location.search);
+  
+  // Parse department parameter
+  const department = params.get('department');
+  if (department) {
+    const deptFilter = document.getElementById('kanban-filter-dept');
+    if (deptFilter) {
+      // Check if the department value exists in the dropdown options
+      const option = Array.from(deptFilter.options).find(opt => opt.value === department);
+      if (option) {
+        deptFilter.value = department;
+      }
+    }
+  }
+}
+
+// Update URL with current kanban filter state
+function updateKanbanURL() {
+  if (window.location.pathname !== '/kanban') return; // Only update URL if we're on the kanban page
+  
+  const params = new URLSearchParams();
+  
+  const deptFilter = document.getElementById('kanban-filter-dept');
+  const priorityFilter = document.getElementById('kanban-filter-priority');
+  
+  if (deptFilter && deptFilter.value) {
+    params.set('department', deptFilter.value);
+  }
+  
+  if (priorityFilter && priorityFilter.value) {
+    params.set('priority', priorityFilter.value);
+  }
+  
+  const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+  if (newUrl !== window.location.pathname + window.location.search) {
+    history.pushState(null, '', newUrl);
   }
 }
 
@@ -2255,6 +2304,11 @@ function navigateToRoute(path, pushState = true) {
     parseActionQueryParams();
   }
   
+  // Parse query parameters for kanban page
+  if (section === 'kanban') {
+    parseKanbanQueryParams();
+  }
+  
   // Handle action item deep linking
   if (section === 'actions' && actionId) {
     // Use the newer loadActionItemsAndExpand function for better deep linking
@@ -2280,6 +2334,11 @@ function initializeFromURL() {
   // Parse query parameters for actions page
   if (path === '/actions') {
     parseActionQueryParams();
+  }
+  
+  // Parse query parameters for kanban page
+  if (path === '/kanban') {
+    parseKanbanQueryParams();
   }
   
   navigateToRoute(path, false);

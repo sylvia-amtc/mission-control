@@ -86,3 +86,18 @@ Started: 2026-02-17T15:22:00Z
 - **Learnings:** Action item deep linking had two implementations - consolidated to use the better loadActionItemsAndExpand() approach. URL state management in toggleActionThread() requires careful history.pushState() coordination with existing routing infrastructure. Test suites should validate both code existence and behavioral integration.
 
 ---
+
+## 2026-02-17T16:32:00Z - US-006: Add Query Parameter Support for Actions
+- Implemented parseActionQueryParams() function to parse URL query parameters (status, severity, department) and update filter state variables
+- Added updateActionURL() function to update browser URL when action filters change using URLSearchParams and history.pushState()
+- Enhanced setActionFilter() to call updateActionURL() after filter changes, maintaining URL state synchronization
+- Integrated query parameter parsing into initializeFromURL() and navigateToRoute() for /actions page
+- Supports all required query parameter formats: /actions?status=open, /actions?severity=red, /actions?department=Engineering
+- Multiple parameters work together and filter state is preserved on page refresh
+- URL updates dynamically when filters are changed through UI, enabling bookmark and share functionality
+- Created comprehensive test suite (test-action-query-params.js) with 11 tests covering all acceptance criteria
+- All existing functionality preserved including WebSocket updates, pagination, and deep linking
+- Files changed: app/public/index.html, app/test-action-query-params.js, app/package.json
+- **Learnings:** URLSearchParams API provides clean query parameter parsing and building. URL state management requires careful coordination between URL changes and filter state updates. Test suite design benefited from string pattern matching rather than JavaScript execution in JSDOM environment for better reliability.
+
+---
