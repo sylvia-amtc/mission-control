@@ -1,0 +1,62 @@
+{
+  "$schema": "fleet-defaults/v2",
+  "version": "2.0",
+  "name": "Operating Model v2",
+  "created": "2026-02-17T23:26:00Z",
+  "createdBy": "david-ceo",
+  "immutable": true,
+  "agents": {
+    "viktor": {
+      "role": "Engineering",
+      "model": "anthropic/claude-opus-4-6",
+      "provider": "anthropic"
+    },
+    "nadia": {
+      "role": "Research",
+      "model": "google-antigravity/gemini-3-pro-high",
+      "provider": "google-antigravity"
+    },
+    "zara": {
+      "role": "Design",
+      "model": "google-antigravity/gemini-3-pro-high",
+      "provider": "google-antigravity"
+    },
+    "max": {
+      "role": "Marketing",
+      "model": "google-antigravity/gemini-3-pro-high",
+      "provider": "google-antigravity"
+    },
+    "elena": {
+      "role": "Sales",
+      "model": "openai-codex/gpt-5.2",
+      "provider": "openai-codex"
+    }
+  },
+  "subagents": {
+    "engineering": {
+      "model": "anthropic/claude-sonnet-4",
+      "provider": "anthropic",
+      "note": "Cheaper Anthropic model for eng sub-agents"
+    },
+    "research": {
+      "model": "google-antigravity/gemini-3-flash",
+      "provider": "google-antigravity",
+      "note": "Cheaper Google model for research sub-agents"
+    },
+    "design": {
+      "model": "google-antigravity/gemini-3-flash",
+      "provider": "google-antigravity",
+      "note": "Cheaper Google model for design sub-agents"
+    },
+    "marketing": {
+      "model": "google-antigravity/gemini-3-flash",
+      "provider": "google-antigravity",
+      "note": "Cheaper Google model for marketing sub-agents"
+    },
+    "sales": {
+      "model": "openai-codex/gpt-4o-mini",
+      "provider": "openai-codex",
+      "note": "Cheaper OpenAI model for sales sub-agents"
+    }
+  }
+}

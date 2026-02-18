@@ -429,3 +429,35 @@ Files changed:
 Tests: All 12 acceptance criteria verified - cost breakdown chart displays with proper positioning, uses Chart.js doughnut visualization, shows department spending with consistent colors, excludes $0 departments, updates with vendor changes, includes proper legend and tooltips, handles errors gracefully
 Typecheck: Passes (node --check server.js)
 ---
+
+## 2026-02-17 20:22 - US-014: Add MCP tools for vendor operations
+- Added 5 vendor MCP tools to mcp-server.js following existing tool patterns:
+  - vendor_list: List vendors with optional filters (status, department, category, limit) 
+  - vendor_get: Get single vendor by ID with proper error handling
+  - vendor_create: Create new vendor record (proxies to POST /api/vendors)
+  - vendor_update: Update existing vendor record (proxies to PATCH /api/vendors/:id) 
+  - vendor_summary: Get aggregated metrics (monthly spend, counts by status/department)
+- All tools follow existing MCP patterns: proper Zod schemas, JSON responses, error handling
+- Read tools use database prepared statements directly (getVendorById, getAllVendors, getVendorSummary)
+- Write tools proxy to REST API using existing apiResult/api pattern for consistency
+- Filtering supports multiple parameter combinations (status + department + category)
+- JSON users arrays properly parsed with try/catch error handling
+- Tools handle edge cases: vendor not found (404), JSON parse errors, empty results
+- Created comprehensive test suite covering all 9 acceptance criteria
+- All vendor MCP tools tests pass (9/9) with complete structural and functional validation
+- **Learnings:**
+  - MCP tool patterns: read tools use stmts directly, write tools proxy to API endpoints
+  - Multi-filter logic requires conditional prepared statement selection with fallback filtering
+  - JSON.parse error handling essential for TEXT fields storing arrays/objects
+  - Tool parameter validation uses Zod schemas with proper enums matching database constraints
+  - apiResult wrapper provides consistent error handling for HTTP proxy operations
+  - Tool descriptions should be concise but descriptive for agent understanding
+
+Files changed:
+- app/mcp-server.js (added 5 vendor MCP tools after existing organization tools)
+- app/test-vendor-mcp-tools.js (comprehensive test suite with 9 test cases covering all acceptance criteria)
+- app/package.json (added test file to test script)
+
+Tests: All acceptance criteria verified - 9/9 tests pass covering tool schemas, filtering, error handling, API patterns, JSON parsing
+Typecheck: Passes (node --check server.js && node --check mcp-server.js)
+---

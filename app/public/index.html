@@ -549,34 +549,74 @@
     <!-- ═══ Action Items (Overhauled) ═══ -->
     <section id="sec-actions" class="hidden">
       <style>
-        .action-card { transition: all 0.2s ease; cursor: pointer; }
-        .action-card:hover { border-color: var(--accent); }
-        .action-card.expanded { border-color: var(--accent); }
-        .action-thread { max-height: 0; overflow: hidden; transition: max-height 0.3s ease, padding 0.3s ease; }
-        .action-thread.open { max-height: 2000px; padding-top: 12px; }
-        .chat-bubble { max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; word-wrap: break-word; }
-        .chat-bubble.david { background: #1E3A5F; border-bottom-left-radius: 4px; margin-right: auto; }
-        .chat-bubble.vp { background: #2D1F4E; border-bottom-right-radius: 4px; margin-left: auto; }
-        .chat-bubble.system { background: #1E2235; margin: 0 auto; font-style: italic; color: var(--text-muted); font-size: 12px; text-align: center; max-width: 100%; }
-        .action-reply-input { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; color: var(--text-primary); font-size: 13px; width: 100%; resize: none; font-family: inherit; }
-        .action-reply-input:focus { outline: none; border-color: var(--accent); }
-        .filter-chip { font-size: 12px; padding: 6px 14px; border-radius: 20px; cursor: pointer; transition: all 0.15s; border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary); white-space: nowrap; }
-        .filter-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
-        .filter-chip:hover:not(.active) { background: var(--surface-elevated); }
-        .filter-chip .chip-count { background: rgba(255,255,255,0.15); padding: 1px 6px; border-radius: 10px; font-size: 10px; margin-left: 4px; }
-        .filter-chip.active .chip-count { background: rgba(255,255,255,0.25); }
+        /* ── Action Table v2 ── */
+        .action-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+        .action-table thead th { padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 2; }
+        .action-table tbody tr { cursor: pointer; transition: background 0.1s; border-bottom: 1px solid var(--border); }
+        .action-table tbody tr:hover { background: var(--surface-elevated); }
+        .action-table tbody tr.active-row { background: rgba(59,130,246,0.12); }
+        .action-table tbody td { padding: 10px 12px; vertical-align: middle; border-bottom: 1px solid rgba(255,255,255,0.04); white-space: nowrap; }
+        .action-table .title-cell { white-space: normal; max-width: 380px; overflow: hidden; text-overflow: ellipsis; }
+        .sev-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+        .sev-dot-red { background: #ef4444; box-shadow: 0 0 6px #ef444466; }
+        .sev-dot-yellow { background: #eab308; box-shadow: 0 0 6px #eab30866; }
+        .sev-dot-blue { background: #3b82f6; box-shadow: 0 0 6px #3b82f666; }
         .unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block; animation: pulse 2s infinite; }
-        .sev-badge-red { background: #3b1111; color: #ef4444; }
-        .sev-badge-yellow { background: #3b3b11; color: #eab308; }
-        .sev-badge-blue { background: #112244; color: #3b82f6; }
-        .status-badge { font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 500; }
+        .status-badge { font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 500; display: inline-block; }
         .status-open { background: #1a2744; color: #60a5fa; }
         .status-awaiting_david { background: #3b1111; color: #f87171; }
         .status-awaiting_vp { background: #2D1F4E; color: #a78bfa; }
         .status-resolved { background: #113311; color: #4ade80; }
         .status-deferred { background: #1E2235; color: #94a3b8; }
-        .action-search { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 8px 14px 8px 36px; color: var(--text-primary); font-size: 13px; width: 280px; font-family: inherit; }
-        .action-search:focus { outline: none; border-color: var(--accent); }
+        .sev-badge-red { background: #3b1111; color: #ef4444; }
+        .sev-badge-yellow { background: #3b3b11; color: #eab308; }
+        .sev-badge-blue { background: #112244; color: #3b82f6; }
+        /* ── Pro Filter Bar ── */
+        .action-pro-filters { margin-bottom: 12px; }
+        .filter-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+        .filter-dropdown { position: relative; }
+        .filter-trigger { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text-secondary); font-size: 12px; font-family: inherit; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+        .filter-trigger:hover { border-color: var(--text-muted); color: var(--text-primary); }
+        .filter-trigger.has-value { border-color: var(--accent); color: var(--accent); background: rgba(59,130,246,0.08); }
+        .filter-dropdown-menu { display: none; position: absolute; top: calc(100% + 4px); left: 0; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); z-index: 60; overflow: hidden; animation: fdSlideDown 0.12s ease-out; }
+        .filter-dropdown.open .filter-dropdown-menu { display: block; }
+        @keyframes fdSlideDown { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        .fd-option { display: flex; align-items: center; justify-content: space-between; padding: 7px 12px; font-size: 12px; color: var(--text-secondary); cursor: pointer; transition: background 0.1s; }
+        .fd-option:hover { background: var(--surface-elevated); color: var(--text-primary); }
+        .fd-option.selected { background: rgba(59,130,246,0.12); color: var(--accent); }
+        .fd-option .fd-check { opacity: 0; margin-right: 8px; color: var(--accent); font-size: 11px; }
+        .fd-option.selected .fd-check { opacity: 1; }
+        .fd-option .fd-count { font-size: 10px; color: var(--text-muted); background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 8px; }
+        .filter-search-wrap { position: relative; flex: 1; min-width: 160px; }
+        .filter-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        .filter-search-input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px 5px 30px; color: var(--text-primary); font-size: 12px; font-family: inherit; }
+        .filter-search-input:focus { outline: none; border-color: var(--accent); }
+        .filter-clear-btn { padding: 5px 12px; border-radius: 6px; border: none; background: transparent; color: var(--text-muted); font-size: 11px; cursor: pointer; white-space: nowrap; font-family: inherit; transition: all 0.15s; }
+        .filter-clear-btn:hover { color: #f87171; background: rgba(248,113,113,0.1); }
+        .filter-active-chips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 0; max-height: 0; overflow: hidden; transition: max-height 0.2s, padding 0.2s; }
+        .filter-active-chips.has-chips { max-height: 40px; padding: 6px 0 0 0; }
+        .filter-active-chips .chip-label { font-size: 11px; color: var(--text-muted); margin-right: 2px; }
+        .active-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 8px 3px 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary); white-space: nowrap; }
+        .active-chip.chip-status { border-color: rgba(96,165,250,0.4); color: #60a5fa; }
+        .active-chip.chip-severity-red { border-color: rgba(239,68,68,0.4); color: #ef4444; }
+        .active-chip.chip-severity-yellow { border-color: rgba(234,179,8,0.4); color: #eab308; }
+        .active-chip.chip-severity-blue { border-color: rgba(59,130,246,0.4); color: #3b82f6; }
+        .active-chip.chip-owner { border-color: rgba(167,139,250,0.4); color: #a78bfa; }
+        .active-chip .chip-x { cursor: pointer; opacity: 0.6; font-size: 13px; line-height: 1; margin-left: 2px; }
+        .active-chip .chip-x:hover { opacity: 1; }
+        .filter-stats-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); padding: 4px 0 0 0; }
+        .filter-stats-row .stat-sep { color: var(--border); }
+        /* Sortable headers */
+        .action-table thead th.sortable { cursor: pointer; user-select: none; }
+        .action-table thead th.sortable:hover { color: var(--text-primary); }
+        .action-table thead th .sort-arrow { font-size: 10px; margin-left: 3px; opacity: 0.4; }
+        .action-table thead th.sort-active .sort-arrow { opacity: 1; color: var(--accent); }
+        .sort-select { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; color: var(--text-secondary); font-size: 12px; cursor: pointer; font-family: inherit; }
+        .sort-select:focus { outline: none; border-color: var(--accent); }
+        .pagination-btn { padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.15s; }
+        .pagination-btn:hover { background: var(--surface-elevated); }
+        .pagination-btn.active { background: var(--accent); color: white; }
+        .pagination-btn:disabled { opacity: 0.3; cursor: not-allowed; }
         .summon-dropdown { position: relative; display: inline-block; }
         .summon-dropdown-btn { display: flex; align-items: center; gap: 2px; }
         .summon-dropdown-menu { display: none; position: absolute; right: 0; top: 100%; margin-top: 4px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; min-width: 160px; z-index: 50; box-shadow: 0 8px 24px rgba(0,0,0,0.4); overflow: hidden; }
@@ -585,12 +625,21 @@
         .summon-dropdown-item:hover { background: var(--accent); color: #fff; }
         .summon-dropdown-item.summoned { color: #22c55e; pointer-events: none; }
         .summon-dropdown-divider { border-top: 1px solid var(--border); }
-        .sort-select { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; color: var(--text-secondary); font-size: 12px; cursor: pointer; font-family: inherit; }
-        .sort-select:focus { outline: none; border-color: var(--accent); }
-        .pagination-btn { padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.15s; }
-        .pagination-btn:hover { background: var(--surface-elevated); }
-        .pagination-btn.active { background: var(--accent); color: white; }
-        .pagination-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        /* ── Slide-out Detail Panel ── */
+        .action-detail-panel { position: fixed; top: 0; right: 0; width: 480px; max-width: 100vw; height: 100vh; background: var(--surface); border-left: 1px solid var(--border); z-index: 100; transform: translateX(100%); transition: transform 0.25s ease; display: flex; flex-direction: column; box-shadow: -4px 0 24px rgba(0,0,0,0.4); }
+        .action-detail-panel.open { transform: translateX(0); }
+        .action-detail-panel .panel-header { padding: 16px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+        .action-detail-panel .panel-thread { flex: 1; overflow-y: auto; padding: 16px 20px; }
+        .action-detail-panel .panel-footer { padding: 12px 20px; border-top: 1px solid var(--border); flex-shrink: 0; }
+        .chat-bubble { max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; word-wrap: break-word; }
+        .chat-bubble.david { background: #1E3A5F; border-bottom-left-radius: 4px; margin-right: auto; }
+        .chat-bubble.vp { background: #2D1F4E; border-bottom-right-radius: 4px; margin-left: auto; }
+        .chat-bubble.system { background: #1E2235; margin: 0 auto; font-style: italic; color: var(--text-muted); font-size: 12px; text-align: center; max-width: 100%; }
+        .action-reply-input { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; color: var(--text-primary); font-size: 13px; width: 100%; resize: none; font-family: inherit; }
+        .action-reply-input:focus { outline: none; border-color: var(--accent); }
+        .panel-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 99; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+        .panel-overlay.open { opacity: 1; pointer-events: auto; }
+        @media (max-width: 640px) { .action-detail-panel { width: 100vw; } }
       </style>
 
       <!-- Header -->
@@ -600,16 +649,6 @@
           <p class="text-sm text-[#94a3b8] mt-1">Threaded conversations · <span id="action-sync-time" class="text-[#64748b]">—</span></p>
         </div>
         <div class="flex gap-2 items-center">
-          <div style="position:relative;">
-            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px;">🔍</span>
-            <input type="text" id="action-search" class="action-search" placeholder="Search items & threads..." oninput="debounceActionSearch()">
-          </div>
-          <select id="action-sort" class="sort-select" onchange="loadActionItems()">
-            <option value="severity">Sort: Severity</option>
-            <option value="last_activity">Sort: Last Activity</option>
-            <option value="created">Sort: Date Created</option>
-            <option value="department">Sort: Department</option>
-          </select>
           <div class="summon-dropdown" id="header-summon-dropdown">
             <button onclick="toggleSummonDropdown('header-summon-dropdown')" class="btn-secondary text-xs px-3 py-1.5 summon-dropdown-btn">📞 Call VP ▾</button>
             <div class="summon-dropdown-menu" id="header-summon-menu"></div>
@@ -659,17 +698,88 @@
       </div>
     </div>
 
-      <!-- Summary Cards -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5" id="action-summary-cards"></div>
+      <!-- Pro Filter Bar -->
+      <div id="action-filter-bar" class="action-pro-filters">
+        <div class="filter-row">
+          <div class="filter-dropdown" id="fd-status">
+            <button class="filter-trigger" onclick="toggleFilterDropdown('fd-status')">
+              <span class="filter-trigger-label" id="fd-status-label">Status</span>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+            </button>
+            <div class="filter-dropdown-menu" id="fd-status-menu"></div>
+          </div>
+          <div class="filter-dropdown" id="fd-severity">
+            <button class="filter-trigger" onclick="toggleFilterDropdown('fd-severity')">
+              <span class="filter-trigger-label" id="fd-severity-label">Severity</span>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+            </button>
+            <div class="filter-dropdown-menu" id="fd-severity-menu"></div>
+          </div>
+          <div class="filter-dropdown" id="fd-owner">
+            <button class="filter-trigger" onclick="toggleFilterDropdown('fd-owner')">
+              <span class="filter-trigger-label" id="fd-owner-label">Owner</span>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+            </button>
+            <div class="filter-dropdown-menu" id="fd-owner-menu"></div>
+          </div>
+          <div class="filter-search-wrap">
+            <svg class="filter-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" id="action-search" class="filter-search-input" placeholder="Search items & threads..." oninput="debounceActionSearch()">
+          </div>
+          <button id="filter-clear-all-btn" class="filter-clear-btn hidden" onclick="clearAllActionFilters()">✕ Clear filters</button>
+        </div>
+        <div class="filter-active-chips" id="filter-active-chips"></div>
+        <div class="filter-stats-row" id="filter-stats-row"></div>
+      </div>
 
-      <!-- Filter Chips -->
-      <div class="flex gap-2 flex-wrap mb-5" id="action-filter-chips"></div>
-
-      <!-- Cards Grid -->
-      <div id="action-items-list"></div>
+      <!-- Table -->
+      <div class="card" style="overflow:hidden;">
+        <div style="overflow-x:auto;max-height:calc(100vh - 300px);overflow-y:auto;" id="action-table-wrap">
+          <table class="action-table" id="action-items-table">
+            <thead>
+              <tr>
+                <th style="width:36px;"></th>
+                <th class="sortable" onclick="setActionSort('title')">Title<span class="sort-arrow" id="sort-arrow-title"></span></th>
+                <th class="sortable" style="width:100px;" onclick="setActionSort('owner')">Owner<span class="sort-arrow" id="sort-arrow-owner"></span></th>
+                <th class="sortable" style="width:120px;" onclick="setActionSort('status')">Status<span class="sort-arrow" id="sort-arrow-status"></span></th>
+                <th class="sortable" style="width:60px;" onclick="setActionSort('severity')">Sev<span class="sort-arrow" id="sort-arrow-severity"></span></th>
+                <th class="sortable" style="width:90px;" onclick="setActionSort('last_activity')">Active<span class="sort-arrow" id="sort-arrow-last_activity"></span></th>
+                <th style="width:50px;">💬</th>
+              </tr>
+            </thead>
+            <tbody id="action-items-tbody"></tbody>
+          </table>
+        </div>
+      </div>
 
       <!-- Pagination -->
-      <div class="flex justify-between items-center mt-5" id="action-pagination"></div>
+      <div class="flex justify-between items-center mt-4" id="action-pagination"></div>
+
+      <!-- Slide-out Detail Panel -->
+      <div class="panel-overlay" id="action-panel-overlay" onclick="closeActionPanel()"></div>
+      <div class="action-detail-panel" id="action-detail-panel">
+        <div class="panel-header">
+          <div class="flex justify-between items-start">
+            <div class="flex-1 min-w-0 mr-3">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="sev-dot" id="panel-sev-dot"></span>
+                <h3 class="text-lg font-bold" id="panel-title" style="overflow:hidden;text-overflow:ellipsis;"></h3>
+              </div>
+              <div class="text-xs text-[#94a3b8]" id="panel-meta"></div>
+            </div>
+            <button onclick="closeActionPanel()" class="text-[#94a3b8] hover:text-white text-xl" style="line-height:1;">&times;</button>
+          </div>
+          <div class="flex items-center gap-2 mt-3" id="panel-status-row"></div>
+        </div>
+        <div class="panel-thread" id="panel-thread"></div>
+        <div class="panel-footer">
+          <div class="flex gap-2 mb-3">
+            <textarea class="action-reply-input" id="panel-reply-input" rows="2" placeholder="Type David's reply..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendPanelReply();}"></textarea>
+            <button onclick="sendPanelReply()" class="btn-primary text-xs px-4" style="align-self:flex-end;border-radius:10px;">Send</button>
+          </div>
+          <div class="flex gap-2 flex-wrap" id="panel-actions"></div>
+        </div>
+      </div>
     </section>
 
     <!-- Quick Resolve Modal -->
@@ -968,15 +1078,35 @@
           .org-panel { width:100%; right:-100%; }
           .vendor-panel { width:100%; right:-100%; }
         }
+/* Fleet Management Styles */
+        .fleet-mode .model-pill { display:none; }
+        .fleet-mode .model-select { display:inline-block; font-size:10px; padding:1px; background:#1e293b; color:white; border:1px solid #334155; border-radius:4px; margin-top:4px; max-width:100px; }
+        .fleet-toolbar { background:#1e293b; padding:8px 16px; border-radius:8px; margin-bottom:16px; display:flex; justify-content:between; align-items:center; border:1px solid #334155; }
+        .fleet-pending-bar { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#0f172a; border:1px solid #334155; padding:12px 24px; border-radius:12px; display:flex; gap:16px; align-items:center; z-index:9999; box-shadow:0 10px 25px rgba(0,0,0,0.5); animation:slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform:translate(-50%, 100%); } to { transform:translate(-50%, 0); } }
       </style>
 
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-2xl font-bold">🏛 Organization</h2>
+        <h2 class="text-2xl font-bold">🏛 Organization & Fleet</h2>
         <div class="text-xs text-[#64748b]" id="org-refresh-time"></div>
       </div>
 
-      <!-- Summary Bar -->
-      <div class="org-summary-bar" id="org-summary"></div>
+      <!-- Summary Bar / Fleet Legend -->
+      <div class="org-summary-bar flex-col items-stretch" id="org-summary"></div>
+
+      <!-- Fleet Controls (Hidden by default) -->
+      <div id="fleet-controls" class="hidden fleet-toolbar">
+        <div class="flex gap-2 items-center">
+          <span class="text-xs font-bold text-blue-400 uppercase tracking-wider">🛠️ Fleet Manager</span>
+          <div class="h-4 w-px bg-slate-600 mx-2"></div>
+          <button onclick="bulkSwapModel('anthropic/claude-opus-4-6', 'openai-codex/gpt-5.2')" class="btn-ghost text-xs px-2 py-1">Opus → GPT-5</button>
+          <button onclick="bulkSwapProvider('Anthropic', 'OpenAI')" class="btn-ghost text-xs px-2 py-1">Anthropic → OpenAI</button>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="saveFleetDefaults()" class="btn-secondary text-xs px-3 py-1.5" title="Save current config as default">💾 Save Defaults</button>
+          <button onclick="restoreFleetDefaults()" class="btn-secondary text-xs px-3 py-1.5" title="Restore from saved defaults">↺ Restore Defaults</button>
+        </div>
+      </div>
 
       <!-- Org Tree -->
       <div class="org-tree" id="org-tree"></div>
@@ -1227,7 +1357,7 @@ function connectWS() {
   ws.onmessage = (e) => {
     const msg = JSON.parse(e.data);
     if (msg.type.startsWith('task')) loadTasks();
-    if (msg.type.startsWith('action')) loadActions();
+    if (msg.type.startsWith('action')) { loadActionCounts(); refreshActionItemsInPlace(); if (panelActionId) refreshExpandedThread(panelActionId); }
     if (msg.type.startsWith('deal') || msg.type.startsWith('crm')) loadPipeline();
     if (msg.type.startsWith('post')) loadCalendar();
     if (msg.type.startsWith('agent')) { if (!document.getElementById('sec-org').classList.contains('hidden')) loadOrgData(); }
@@ -2066,14 +2196,17 @@ function generateSparkData(kpi){const val=parseFloat(kpi.current_value)||50;cons
 async function syncKPIs(){await api('/api/kpis/sync',{method:'POST'});KPIS=await api('/api/kpis');renderKPIs();}
 
 // ═══ Action Items (Overhauled) ═══
-let actionCurrentFilter = 'open';
+let actionCurrentFilter = '';
 let actionCurrentSeverity = '';
 let actionCurrentRequester = '';
+let actionCurrentOwner = '';
 let actionCurrentPage = 1;
 let actionCounts = {};
 let actionExpandedId = null;
 let actionSearchTimeout = null;
 let resolveTargetId = null;
+let actionSortField = 'severity';
+let actionSortDir = 'desc';
 
 function debounceActionSearch() {
   clearTimeout(actionSearchTimeout);
@@ -2082,30 +2215,183 @@ function debounceActionSearch() {
 
 function setActionFilter(f, type = 'status') {
   if (type === 'status') {
-    actionCurrentFilter = actionCurrentFilter === f ? 'all' : f;
-    actionCurrentSeverity = '';
-    actionCurrentRequester = '';
+    actionCurrentFilter = actionCurrentFilter === f ? '' : f;
   } else if (type === 'severity') {
     actionCurrentSeverity = actionCurrentSeverity === f ? '' : f;
-    actionCurrentFilter = 'all';
-    actionCurrentRequester = '';
   } else if (type === 'requester') {
     actionCurrentRequester = actionCurrentRequester === f ? '' : f;
-    actionCurrentFilter = 'all';
-    actionCurrentSeverity = '';
+  } else if (type === 'owner') {
+    actionCurrentOwner = actionCurrentOwner === f ? '' : f;
   }
   actionCurrentPage = 1;
   updateActionURL();
+  renderProFilterBar();
   loadActionItems();
 }
 
+function clearAllActionFilters() {
+  actionCurrentFilter = '';
+  actionCurrentSeverity = '';
+  actionCurrentRequester = '';
+  actionCurrentOwner = '';
+  const searchEl = document.getElementById('action-search');
+  if (searchEl) searchEl.value = '';
+  actionCurrentPage = 1;
+  updateActionURL();
+  renderProFilterBar();
+  loadActionItems();
+}
+
+function toggleFilterDropdown(id) {
+  const el = document.getElementById(id);
+  const wasOpen = el.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.filter-dropdown.open').forEach(d => d.classList.remove('open'));
+  if (!wasOpen) el.classList.add('open');
+}
+
+// Close dropdowns on outside click / Escape
+document.addEventListener('click', e => {
+  if (!e.target.closest('.filter-dropdown')) {
+    document.querySelectorAll('.filter-dropdown.open').forEach(d => d.classList.remove('open'));
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.filter-dropdown.open').forEach(d => d.classList.remove('open'));
+});
+
+function setActionSort(field) {
+  if (actionSortField === field) {
+    actionSortDir = actionSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    actionSortField = field;
+    actionSortDir = field === 'title' || field === 'owner' ? 'asc' : 'desc';
+  }
+  updateSortArrows();
+  loadActionItems();
+}
+
+function updateSortArrows() {
+  document.querySelectorAll('.action-table thead th').forEach(th => th.classList.remove('sort-active'));
+  ['title','owner','status','severity','last_activity'].forEach(f => {
+    const arrow = document.getElementById('sort-arrow-' + f);
+    if (arrow) {
+      if (actionSortField === f) {
+        arrow.textContent = actionSortDir === 'asc' ? ' ↑' : ' ↓';
+        arrow.closest('th').classList.add('sort-active');
+      } else {
+        arrow.textContent = '';
+      }
+    }
+  });
+}
+
+function renderProFilterBar() {
+  const c = actionCounts;
+  const hasFilters = actionCurrentFilter || actionCurrentSeverity || actionCurrentOwner;
+  
+  // Status dropdown
+  const statuses = [
+    { key: 'open', label: 'Open', count: c.open || 0 },
+    { key: 'awaiting_david', label: 'Awaiting David', count: c.awaiting_david || 0 },
+    { key: 'awaiting_vp', label: 'Awaiting VP', count: c.awaiting_vp || 0 },
+    { key: 'resolved', label: 'Resolved', count: c.resolved || 0 },
+    { key: 'deferred', label: 'Deferred', count: c.deferred || 0 },
+  ];
+  document.getElementById('fd-status-menu').innerHTML = statuses.map(s =>
+    `<div class="fd-option ${actionCurrentFilter === s.key ? 'selected' : ''}" onclick="event.stopPropagation();setActionFilter('${s.key}','status')"><span><span class="fd-check">✓</span>${s.label}</span><span class="fd-count">${s.count}</span></div>`
+  ).join('');
+  const statusTrigger = document.querySelector('#fd-status .filter-trigger');
+  const statusLabel = document.getElementById('fd-status-label');
+  if (actionCurrentFilter) {
+    statusLabel.textContent = statuses.find(s => s.key === actionCurrentFilter)?.label || 'Status';
+    statusTrigger.classList.add('has-value');
+  } else {
+    statusLabel.textContent = 'Status';
+    statusTrigger.classList.remove('has-value');
+  }
+
+  // Severity dropdown
+  const sevs = [
+    { key: 'red', label: '🔴 Critical', count: c.red || 0 },
+    { key: 'yellow', label: '🟡 Blocking', count: c.yellow || 0 },
+    { key: 'blue', label: '🔵 Decision', count: c.blue || 0 },
+  ];
+  document.getElementById('fd-severity-menu').innerHTML = sevs.map(s =>
+    `<div class="fd-option ${actionCurrentSeverity === s.key ? 'selected' : ''}" onclick="event.stopPropagation();setActionFilter('${s.key}','severity')"><span><span class="fd-check">✓</span>${s.label}</span><span class="fd-count">${s.count}</span></div>`
+  ).join('');
+  const sevTrigger = document.querySelector('#fd-severity .filter-trigger');
+  const sevLabel = document.getElementById('fd-severity-label');
+  if (actionCurrentSeverity) {
+    sevLabel.textContent = sevs.find(s => s.key === actionCurrentSeverity)?.label || 'Severity';
+    sevTrigger.classList.add('has-value');
+  } else {
+    sevLabel.textContent = 'Severity';
+    sevTrigger.classList.remove('has-value');
+  }
+
+  // Owner dropdown
+  const owners = Object.entries(c.owners || {}).sort((a,b) => b[1] - a[1]);
+  document.getElementById('fd-owner-menu').innerHTML = owners.map(([name, count]) =>
+    `<div class="fd-option ${actionCurrentOwner === name ? 'selected' : ''}" onclick="event.stopPropagation();setActionFilter('${name.replace(/'/g,"\\'")}','owner')"><span><span class="fd-check">✓</span>${name}</span><span class="fd-count">${count}</span></div>`
+  ).join('');
+  const ownerTrigger = document.querySelector('#fd-owner .filter-trigger');
+  const ownerLabel = document.getElementById('fd-owner-label');
+  if (actionCurrentOwner) {
+    ownerLabel.textContent = actionCurrentOwner;
+    ownerTrigger.classList.add('has-value');
+  } else {
+    ownerLabel.textContent = 'Owner';
+    ownerTrigger.classList.remove('has-value');
+  }
+
+  // Clear all btn
+  const clearBtn = document.getElementById('filter-clear-all-btn');
+  if (clearBtn) {
+    if (hasFilters) clearBtn.classList.remove('hidden');
+    else clearBtn.classList.add('hidden');
+  }
+
+  // Active chips
+  const chipsEl = document.getElementById('filter-active-chips');
+  let chips = [];
+  if (actionCurrentFilter) {
+    const sl = statuses.find(s => s.key === actionCurrentFilter);
+    chips.push(`<span class="active-chip chip-status">${sl?.label || actionCurrentFilter}<span class="chip-x" onclick="setActionFilter('${actionCurrentFilter}','status')">✕</span></span>`);
+  }
+  if (actionCurrentSeverity) {
+    const sl = sevs.find(s => s.key === actionCurrentSeverity);
+    chips.push(`<span class="active-chip chip-severity-${actionCurrentSeverity}">${sl?.label || actionCurrentSeverity}<span class="chip-x" onclick="setActionFilter('${actionCurrentSeverity}','severity')">✕</span></span>`);
+  }
+  if (actionCurrentOwner) {
+    chips.push(`<span class="active-chip chip-owner">Owner: ${actionCurrentOwner}<span class="chip-x" onclick="setActionFilter('${actionCurrentOwner.replace(/'/g,"\\'")}','owner')">✕</span></span>`);
+  }
+  if (chips.length) {
+    chipsEl.innerHTML = `<span class="chip-label">Filters:</span>${chips.join('')}<span class="chip-label" style="cursor:pointer;color:#f87171;" onclick="clearAllActionFilters()">Clear all</span>`;
+    chipsEl.classList.add('has-chips');
+  } else {
+    chipsEl.innerHTML = '';
+    chipsEl.classList.remove('has-chips');
+  }
+
+  // Stats row (always unfiltered totals)
+  const statsEl = document.getElementById('filter-stats-row');
+  if (statsEl) {
+    const total = c.total || 0;
+    const filtered = document.querySelectorAll('#action-items-tbody tr').length;
+    statsEl.innerHTML = `<span>Showing ${actionFilteredTotal ?? total} of ${total} items</span><span class="stat-sep">·</span><span>🔴 ${c.awaiting_david || 0} awaiting David</span><span class="stat-sep">·</span><span>🟡 ${c.awaiting_vp || 0} awaiting VP</span><span class="stat-sep">·</span><span>✅ ${c.resolved || 0} resolved</span>`;
+  }
+}
+
+let actionFilteredTotal = null;
+
 // Update URL with current action filter state
 function updateActionURL() {
-  if (window.location.pathname !== '/actions') return; // Only update URL if we're on the actions page
+  if (window.location.pathname !== '/actions') return;
   
   const params = new URLSearchParams();
   
-  if (actionCurrentFilter && actionCurrentFilter !== 'all') {
+  if (actionCurrentFilter) {
     params.set('status', actionCurrentFilter);
   }
   
@@ -2117,10 +2403,16 @@ function updateActionURL() {
     params.set('department', actionCurrentRequester);
   }
   
+  if (actionCurrentOwner) {
+    params.set('owner', actionCurrentOwner);
+  }
+  
+  const search = document.getElementById('action-search')?.value;
+  if (search) params.set('search', search);
+  
   const queryString = params.toString();
   const newURL = '/actions' + (queryString ? '?' + queryString : '');
   
-  // Only push state if URL actually changed
   if (window.location.pathname + window.location.search !== newURL) {
     history.pushState({}, '', newURL);
   }
@@ -2133,13 +2425,14 @@ function parseActionQueryParams() {
   const params = new URLSearchParams(window.location.search);
   
   // Reset to defaults
-  actionCurrentFilter = 'open';
+  actionCurrentFilter = '';
   actionCurrentSeverity = '';
   actionCurrentRequester = '';
+  actionCurrentOwner = '';
   
   // Parse status parameter
   const status = params.get('status');
-  if (status && ['open', 'awaiting_david', 'awaiting_vp', 'resolved', 'deferred', 'all'].includes(status)) {
+  if (status && ['open', 'awaiting_david', 'awaiting_vp', 'resolved', 'deferred'].includes(status)) {
     actionCurrentFilter = status;
   }
   
@@ -2147,14 +2440,25 @@ function parseActionQueryParams() {
   const severity = params.get('severity');
   if (severity && ['red', 'yellow', 'blue'].includes(severity)) {
     actionCurrentSeverity = severity;
-    actionCurrentFilter = 'all'; // When severity is set, show all statuses
   }
   
   // Parse department parameter
   const department = params.get('department');
   if (department) {
     actionCurrentRequester = decodeURIComponent(department);
-    actionCurrentFilter = 'all'; // When department is set, show all statuses
+  }
+  
+  // Parse owner parameter
+  const owner = params.get('owner');
+  if (owner) {
+    actionCurrentOwner = decodeURIComponent(owner);
+  }
+  
+  // Parse search parameter
+  const search = params.get('search');
+  if (search) {
+    const searchEl = document.getElementById('action-search');
+    if (searchEl) searchEl.value = search;
   }
 }
 
@@ -2291,195 +2595,168 @@ function severityShort(s) { return s === 'red' ? '🔴 Critical' : s === 'yellow
 
 async function loadActionCounts() {
   actionCounts = await api('/api/actions/counts');
-  renderActionFilterChips();
-  renderActionSummaryCards();
+  renderProFilterBar();
 }
 
-function renderActionSummaryCards() {
-  const c = actionCounts;
-  const openTotal = (c.open || 0) + (c.awaiting_david || 0) + (c.awaiting_vp || 0);
-  document.getElementById('action-summary-cards').innerHTML = `
-    <div class="card p-4 border-t-2 border-red-500 cursor-pointer" onclick="setActionFilter('red','severity')">
-      <div class="text-xs text-[#94a3b8]">🔴 Blocking Revenue</div>
-      <div class="text-2xl font-bold text-red-400">${c.red || 0}</div>
-      <div class="text-xs text-[#64748b]">immediate action needed</div>
-    </div>
-    <div class="card p-4 border-t-2 border-amber-500 cursor-pointer" onclick="setActionFilter('awaiting_david','status')">
-      <div class="text-xs text-[#94a3b8]">⏳ Awaiting David</div>
-      <div class="text-2xl font-bold text-amber-400">${c.awaiting_david || 0}</div>
-      <div class="text-xs text-[#64748b]">need your reply</div>
-    </div>
-    <div class="card p-4 border-t-2 border-purple-500 cursor-pointer" onclick="setActionFilter('awaiting_vp','status')">
-      <div class="text-xs text-[#94a3b8]">💬 Awaiting VP</div>
-      <div class="text-2xl font-bold text-purple-400">${c.awaiting_vp || 0}</div>
-      <div class="text-xs text-[#64748b]">waiting for VP response</div>
-    </div>
-    <div class="card p-4 border-t-2 border-green-500 cursor-pointer" onclick="setActionFilter('resolved','status')">
-      <div class="text-xs text-[#94a3b8]">✅ Resolved</div>
-      <div class="text-2xl font-bold text-green-400">${c.resolved || 0}</div>
-      <div class="text-xs text-[#64748b]">${c.deferred || 0} deferred</div>
-    </div>`;
-}
+function renderActionSummaryCards() { renderProFilterBar(); }
+function renderActionFilterChips() { renderProFilterBar(); }
 
-function renderActionFilterChips() {
-  const c = actionCounts;
-  const statuses = [
-    { key: 'open', label: 'Open', count: (c.open||0) + (c.awaiting_david||0) + (c.awaiting_vp||0), type: 'status' },
-    { key: 'awaiting_david', label: "Needs Reply", count: c.awaiting_david || 0, type: 'status' },
-    { key: 'awaiting_vp', label: 'Awaiting VP', count: c.awaiting_vp || 0, type: 'status' },
-    { key: 'resolved', label: 'Resolved', count: c.resolved || 0, type: 'status' },
-    { key: 'deferred', label: 'Deferred', count: c.deferred || 0, type: 'status' },
-    { key: 'all', label: 'All', count: c.total || 0, type: 'status' },
-  ];
-  const severities = [
-    { key: 'red', label: '🔴 Critical', count: c.red || 0, type: 'severity' },
-    { key: 'yellow', label: '🟡 Progress', count: c.yellow || 0, type: 'severity' },
-    { key: 'blue', label: '🔵 Decision', count: c.blue || 0, type: 'severity' },
-  ];
-  const requesters = Object.entries(c.requesters || {}).map(([name, count]) => ({
-    key: name, label: name.replace(' (todo-sync)', ''), count, type: 'requester'
-  }));
-
-  const renderChip = (item) => {
-    const isActive = (item.type === 'status' && actionCurrentFilter === item.key) ||
-                     (item.type === 'severity' && actionCurrentSeverity === item.key) ||
-                     (item.type === 'requester' && actionCurrentRequester === item.key);
-    return `<button class="filter-chip ${isActive ? 'active' : ''}" onclick="setActionFilter('${item.key}','${item.type}')">${item.label}<span class="chip-count">${item.count}</span></button>`;
-  };
-
-  document.getElementById('action-filter-chips').innerHTML = `
-    <div class="flex gap-2 flex-wrap">${statuses.map(renderChip).join('')}</div>
-    <div style="width:1px;background:var(--border);margin:0 4px;"></div>
-    <div class="flex gap-2 flex-wrap">${severities.map(renderChip).join('')}</div>
-    ${requesters.length ? `<div style="width:1px;background:var(--border);margin:0 4px;"></div><div class="flex gap-2 flex-wrap">${requesters.slice(0, 6).map(renderChip).join('')}</div>` : ''}
-  `;
-}
+const ACTION_PAGE_SIZE = 25;
 
 async function loadActionItems() {
   const search = document.getElementById('action-search')?.value || '';
-  const sort = document.getElementById('action-sort')?.value || 'severity';
+  const sort = actionSortField || 'severity';
   let statusParam = actionCurrentFilter;
-  if (statusParam === 'open') statusParam = 'open'; // API handles open as including awaiting_*
   
-  let url = `/api/actions?page=${actionCurrentPage}&limit=12`;
-  if (statusParam && statusParam !== 'all') url += `&status=${statusParam}`;
+  let url = `/api/actions?page=${actionCurrentPage}&limit=${ACTION_PAGE_SIZE}`;
+  if (statusParam) url += `&status=${statusParam}`;
   if (actionCurrentSeverity) url += `&severity=${actionCurrentSeverity}`;
   if (actionCurrentRequester) url += `&requester=${encodeURIComponent(actionCurrentRequester)}`;
+  if (actionCurrentOwner) url += `&owner=${encodeURIComponent(actionCurrentOwner)}`;
   if (search) url += `&search=${encodeURIComponent(search)}`;
 
   const data = await api(url);
   let items = data.items || [];
+  actionFilteredTotal = data.total;
   
   // Client-side sort
-  if (sort === 'last_activity') items.sort((a, b) => new Date(b.last_activity || b.updated_at) - new Date(a.last_activity || a.updated_at));
-  else if (sort === 'created') items.sort((a, b) => new Date(b.opened_date) - new Date(a.opened_date));
-  else if (sort === 'department') items.sort((a, b) => (a.requester || '').localeCompare(b.requester || ''));
+  const dir = actionSortDir === 'asc' ? 1 : -1;
+  const sevOrder = { red: 0, yellow: 1, blue: 2 };
+  const statusOrder = { awaiting_david: 0, open: 1, awaiting_vp: 2, deferred: 3, resolved: 4 };
+  if (sort === 'severity') items.sort((a, b) => dir * ((sevOrder[a.severity] ?? 9) - (sevOrder[b.severity] ?? 9)));
+  else if (sort === 'last_activity') items.sort((a, b) => dir * (new Date(b.last_activity || b.updated_at) - new Date(a.last_activity || a.updated_at)));
+  else if (sort === 'title') items.sort((a, b) => dir * (a.title || '').localeCompare(b.title || ''));
+  else if (sort === 'owner') items.sort((a, b) => dir * (a.owner || '').localeCompare(b.owner || ''));
+  else if (sort === 'status') items.sort((a, b) => dir * ((statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9)));
 
-  renderActionCards(items);
+  renderActionTable(items);
   renderActionPagination(data);
+  renderProFilterBar();
+  updateSortArrows();
   loadSyncStatus();
 }
 
-function renderActionCards(items) {
+function renderActionTable(items) {
+  const tbody = document.getElementById('action-items-tbody');
+  if (!tbody) return;
   if (!items.length) {
-    document.getElementById('action-items-list').innerHTML = '<div class="card p-8 text-center text-[#64748b]">No action items match this filter</div>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-[#64748b]" style="padding:40px;">No action items match this filter</td></tr>';
     return;
   }
-  document.getElementById('action-items-list').innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">${items.map(a => renderActionCardNew(a)).join('')}</div>`;
-  // If a thread was expanded, re-fetch and render its messages
-  if (actionExpandedId && document.getElementById(`action-thread-${actionExpandedId}`)) {
-    api(`/api/actions/${actionExpandedId}/messages`).then(messages => {
-      renderThread(actionExpandedId, messages);
-    }).catch(() => {});
-  }
+  tbody.innerHTML = items.map(a => {
+    const stale = Math.floor((new Date() - new Date(a.last_activity || a.updated_at || a.opened_date)) / 864e5);
+    const staleTag = ['open', 'awaiting_david'].includes(a.status) && stale >= 3 ? ` <span class="text-xs px-1 py-0.5 rounded bg-red-900/40 text-red-300">⚠${stale}d</span>` : '';
+    const needsAttention = a.status === 'awaiting_david';
+    const dimClass = (a.status === 'resolved' || a.status === 'deferred') ? ' style="opacity:0.5;"' : '';
+    const activeClass = actionExpandedId === a.id ? ' active-row' : '';
+    const owner = (a.owner || a.requester || '').replace(' (todo-sync)', '');
+    return `<tr class="action-row${activeClass}" id="action-row-${a.id}" onclick="openActionPanel(${a.id})"${dimClass}>
+      <td>${needsAttention ? '<span class="unread-dot"></span>' : '<span class="sev-dot sev-dot-' + a.severity + '"></span>'}</td>
+      <td class="title-cell"><span class="font-medium">${a.title}</span>${staleTag}</td>
+      <td class="text-xs text-[#94a3b8]">${owner}</td>
+      <td><span class="status-badge status-${a.status}">${statusLabel(a.status)}</span></td>
+      <td><span class="sev-badge-${a.severity} px-2 py-0.5 rounded text-xs">${severityShort(a.severity)}</span></td>
+      <td class="text-xs text-[#64748b]">${timeAgo(a.last_activity || a.updated_at)}</td>
+      <td class="text-xs text-[#64748b]">${a.message_count || ''}</td>
+      <td onclick="event.stopPropagation()">
+        <div class="summon-dropdown" id="table-summon-${a.id}">
+          <button onclick="toggleSummonDropdown('table-summon-${a.id}')" class="btn-ghost text-xs px-2 py-1 text-[#64748b] hover:text-white">📞</button>
+          <div class="summon-dropdown-menu"></div>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
 }
 
-function renderActionCardNew(a) {
-  const isExpanded = actionExpandedId === a.id;
-  const stale = Math.floor((new Date() - new Date(a.last_activity || a.updated_at || a.opened_date)) / 864e5);
-  const staleTag = ['open', 'awaiting_david'].includes(a.status) && stale >= 3 ? `<span class="text-xs px-1.5 py-0.5 rounded bg-red-900/40 text-red-300">⚠ ${stale}d</span>` : '';
-  const needsAttention = a.status === 'awaiting_david';
-  const msgBadge = a.message_count ? `<span class="text-xs text-[#64748b]">💬 ${a.message_count}</span>` : '';
-  const sevBorder = a.severity === 'red' ? 'border-l-4 border-red-500' : a.severity === 'yellow' ? 'border-l-4 border-yellow-500' : 'border-l-4 border-blue-500';
+// ── Slide-out Panel ──
+let panelActionId = null;
 
-  return `<div class="card action-card ${sevBorder} ${isExpanded ? 'expanded' : ''} ${a.status === 'resolved' || a.status === 'deferred' ? 'opacity-60' : ''}" id="action-card-${a.id}">
-    <div class="p-4" onclick="toggleActionThread(${a.id})">
-      <div class="flex justify-between items-start gap-2">
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 flex-wrap">
-            ${needsAttention ? '<span class="unread-dot"></span>' : ''}
-            <span class="font-medium text-sm">${a.title}</span>
-            <span class="status-badge status-${a.status}">${statusLabel(a.status)}</span>
-            ${staleTag}
-          </div>
-          <div class="flex items-center gap-3 mt-2 text-xs text-[#64748b] flex-wrap">
-            <span class="sev-badge-${a.severity} px-2 py-0.5 rounded text-xs">${severityShort(a.severity)}</span>
-            ${a.requester ? `<span>📨 ${a.requester.replace(' (todo-sync)', '')}</span>` : ''}
-            <span>📅 ${a.opened_date}</span>
-            <span>🕐 ${timeAgo(a.last_activity || a.updated_at)}</span>
-            ${msgBadge}
-          </div>
-        </div>
-        <div class="flex items-center gap-1 shrink-0" onclick="event.stopPropagation()">
-          ${a.status !== 'resolved' ? `
-            <div class="summon-dropdown" id="summon-dd-${a.id}">
-              <button onclick="toggleSummonDropdown('summon-dd-${a.id}')" class="btn-ghost text-xs px-2 py-1 summon-dropdown-btn">📞 Call VP ▾</button>
-              <div class="summon-dropdown-menu" id="summon-menu-${a.id}"></div>
-            </div>
-            <button onclick="deferActionItem(${a.id})" class="btn-ghost text-xs px-2 py-1" title="Defer">⏸</button>
-            <select onchange="changeActionSeverity(${a.id}, this.value)" class="sort-select" style="padding:4px 6px;font-size:11px;" title="Change priority">
-              <option value="red" ${a.severity === 'red' ? 'selected' : ''}>🔴</option>
-              <option value="yellow" ${a.severity === 'yellow' ? 'selected' : ''}>🟡</option>
-              <option value="blue" ${a.severity === 'blue' ? 'selected' : ''}>🔵</option>
-            </select>
-          ` : `
-            <button onclick="reopenAction(${a.id})" class="btn-ghost text-xs px-2 py-1">↩ Reopen</button>
-          `}
-          <span style="color:var(--text-muted);font-size:16px;padding:4px;">${isExpanded ? '▾' : '▸'}</span>
-        </div>
-      </div>
-    </div>
-    <div class="action-thread ${isExpanded ? 'open' : ''}" id="action-thread-${a.id}">
-      ${isExpanded ? '<div class="px-4 pb-4"><div class="text-xs text-[#64748b] text-center py-4">Loading thread...</div></div>' : ''}
-    </div>
-  </div>`;
-}
-
-async function toggleActionThread(id) {
-  if (actionExpandedId === id) {
-    actionExpandedId = null;
-    const thread = document.getElementById(`action-thread-${id}`);
-    if (thread) thread.classList.remove('open');
-    document.getElementById(`action-card-${id}`)?.classList.remove('expanded');
-    // Update URL to go back to /actions when collapsing
-    history.pushState({ section: 'actions', actionId: null }, '', '/actions');
-    return;
-  }
-  // Collapse previous
-  if (actionExpandedId) {
-    const prev = document.getElementById(`action-thread-${actionExpandedId}`);
-    if (prev) prev.classList.remove('open');
-    document.getElementById(`action-card-${actionExpandedId}`)?.classList.remove('expanded');
-  }
+function openActionPanel(id) {
+  panelActionId = id;
   actionExpandedId = id;
-  const thread = document.getElementById(`action-thread-${id}`);
-  const card = document.getElementById(`action-card-${id}`);
-  if (thread) {
-    thread.classList.add('open');
-    card?.classList.add('expanded');
-    thread.innerHTML = '<div class="px-4 pb-4"><div class="text-xs text-[#64748b] text-center py-4">Loading...</div></div>';
-    // Update URL to /actions/:id when expanding
-    history.pushState({ section: 'actions', actionId: id }, '', `/actions/${id}`);
-    const messages = await api(`/api/actions/${id}/messages`);
-    renderThread(id, messages);
-  }
+  const panel = document.getElementById('action-detail-panel');
+  const overlay = document.getElementById('action-panel-overlay');
+  panel.classList.add('open');
+  overlay.classList.add('open');
+  // Highlight row
+  document.querySelectorAll('.action-row').forEach(r => r.classList.remove('active-row'));
+  document.getElementById(`action-row-${id}`)?.classList.add('active-row');
+  // Update URL
+  history.pushState({ section: 'actions', actionId: id }, '', `/actions/${id}`);
+  // Load panel content
+  loadPanelContent(id);
 }
 
-function renderThread(actionId, messages) {
-  const thread = document.getElementById(`action-thread-${actionId}`);
-  if (!thread) return;
+function closeActionPanel() {
+  const panel = document.getElementById('action-detail-panel');
+  const overlay = document.getElementById('action-panel-overlay');
+  panel.classList.remove('open');
+  overlay.classList.remove('open');
+  document.querySelectorAll('.action-row').forEach(r => r.classList.remove('active-row'));
+  if (panelActionId) {
+    history.pushState({ section: 'actions', actionId: null }, '', '/actions');
+  }
+  panelActionId = null;
+  actionExpandedId = null;
+}
 
-  const action = ACTIONS.find(a => a.id === actionId);
+async function loadPanelContent(id) {
+  const action = ACTIONS.find(a => a.id === id);
+  const titleEl = document.getElementById('panel-title');
+  const metaEl = document.getElementById('panel-meta');
+  const dotEl = document.getElementById('panel-sev-dot');
+  const statusRow = document.getElementById('panel-status-row');
+  const threadEl = document.getElementById('panel-thread');
+  const actionsEl = document.getElementById('panel-actions');
+
+  if (!action) {
+    // Fetch it
+    const data = await api(`/api/actions?page=1&limit=999`);
+    ACTIONS = data.items || [];
+    const a = ACTIONS.find(x => x.id === id);
+    if (!a) { threadEl.innerHTML = '<div class="text-center text-[#64748b] py-8">Action item not found</div>'; return; }
+    return loadPanelContent(id);
+  }
+
+  titleEl.textContent = action.title;
+  dotEl.className = `sev-dot sev-dot-${action.severity}`;
+  const owner = (action.owner || action.requester || '').replace(' (todo-sync)', '');
+  metaEl.innerHTML = `Owner: <strong>${owner}</strong> · Opened: ${action.opened_date} · Last activity: ${timeAgo(action.last_activity || action.updated_at)}`;
+
+  statusRow.innerHTML = `
+    <span class="status-badge status-${action.status}">${statusLabel(action.status)}</span>
+    <span class="sev-badge-${action.severity} px-2 py-0.5 rounded text-xs">${severityShort(action.severity)}</span>
+  `;
+
+  // Action buttons
+  if (action.status !== 'resolved' && action.status !== 'deferred') {
+    actionsEl.innerHTML = `
+      <div class="summon-dropdown" id="panel-summon-dd">
+        <button onclick="toggleSummonDropdown('panel-summon-dd')" class="btn-secondary text-xs px-3 py-1.5 summon-dropdown-btn">📞 Call VP ▾</button>
+        <div class="summon-dropdown-menu" id="panel-summon-menu"></div>
+      </div>
+      <button onclick="panelDefer()" class="btn-secondary text-xs px-3 py-1.5">⏸ Defer</button>
+      <button onclick="panelResolve()" class="btn-primary text-xs px-3 py-1.5">✅ Resolve</button>
+      <select onchange="panelChangeSeverity(this.value)" class="sort-select" style="padding:4px 8px;font-size:11px;">
+        <option value="red" ${action.severity === 'red' ? 'selected' : ''}>🔴 Critical</option>
+        <option value="yellow" ${action.severity === 'yellow' ? 'selected' : ''}>🟡 Progress</option>
+        <option value="blue" ${action.severity === 'blue' ? 'selected' : ''}>🔵 Decision</option>
+      </select>
+    `;
+  } else {
+    actionsEl.innerHTML = `<button onclick="panelReopen()" class="btn-secondary text-xs px-3 py-1.5">↩ Reopen</button>`;
+  }
+
+  // Load thread
+  threadEl.innerHTML = '<div class="text-xs text-[#64748b] text-center py-4">Loading thread...</div>';
+  const messages = await api(`/api/actions/${id}/messages`);
+  renderPanelThread(id, action, messages);
+}
+
+function renderPanelThread(actionId, action, messages) {
+  const threadEl = document.getElementById('panel-thread');
+  if (!threadEl) return;
+
   const descBubble = action && action.description ? `<div class="flex justify-end mb-3">
       <div>
         <div class="text-xs text-[#64748b] mb-1 text-right">${action.requester ? action.requester.replace(' (todo-sync)', '') : 'VP'} · opened</div>
@@ -2498,73 +2775,70 @@ function renderThread(actionId, messages) {
         <div class="chat-bubble ${bubbleClass}">${m.message.replace(/\n/g, '<br>')}</div>
       </div>
     </div>`;
-  }).join('') : (descBubble || '<div class="text-xs text-[#64748b] text-center py-3">No messages yet. Start the conversation below.</div>');
+  }).join('') : '<div class="text-xs text-[#64748b] text-center py-3">No messages yet. Start the conversation below.</div>';
 
-  thread.innerHTML = `
-    <div class="px-4 pb-4 border-t border-[#2d3148]">
-      <div style="max-height:300px;overflow-y:auto;padding:12px 0;" id="action-msgs-${actionId}">${msgsHtml}</div>
-      <div class="flex gap-2 mt-2">
-        <textarea class="action-reply-input" id="action-reply-${actionId}" rows="2" placeholder="Type David's reply..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendActionReply(${actionId});}"></textarea>
-        <button onclick="sendActionReply(${actionId})" class="btn-primary text-xs px-4" style="align-self:flex-end;border-radius:10px;">Send</button>
-      </div>
-    </div>`;
-  
-  // Scroll to bottom
-  const msgsEl = document.getElementById(`action-msgs-${actionId}`);
-  if (msgsEl) msgsEl.scrollTop = msgsEl.scrollHeight;
+  threadEl.innerHTML = msgsHtml;
+  threadEl.scrollTop = threadEl.scrollHeight;
 }
 
-async function sendActionReply(actionId) {
-  const input = document.getElementById(`action-reply-${actionId}`);
+async function sendPanelReply() {
+  if (!panelActionId) return;
+  const input = document.getElementById('panel-reply-input');
   if (!input || !input.value.trim()) return;
   const message = input.value.trim();
   input.value = '';
   input.disabled = true;
-  
   try {
-    await api(`/api/actions/${actionId}/messages`, {
-      method: 'POST',
-      body: JSON.stringify({ sender: 'David', message })
-    });
-    const messages = await api(`/api/actions/${actionId}/messages`);
-    renderThread(actionId, messages);
+    await api(`/api/actions/${panelActionId}/messages`, { method: 'POST', body: JSON.stringify({ sender: 'David', message }) });
+    const messages = await api(`/api/actions/${panelActionId}/messages`);
+    const action = ACTIONS.find(a => a.id === panelActionId);
+    renderPanelThread(panelActionId, action, messages);
     loadActionCounts();
-  } catch (e) {
-    input.value = message;
-    console.error('Failed to send reply:', e);
-  }
+  } catch (e) { input.value = message; console.error('Failed to send reply:', e); }
   input.disabled = false;
 }
 
-async function deferActionItem(id) {
-  await api(`/api/actions/${id}/defer`, { method: 'PATCH', body: JSON.stringify({ notes: 'Deferred by David' }) });
-  actionExpandedId = null;
-  loadActionCounts();
-  loadActionItems();
-}
+async function panelDefer() { if (!panelActionId) return; await api(`/api/actions/${panelActionId}/defer`, { method: 'PATCH', body: JSON.stringify({ notes: 'Deferred by David' }) }); loadActionCounts(); loadActionItems(); loadPanelContent(panelActionId); }
+async function panelResolve() { if (!panelActionId) return; quickResolve(panelActionId, document.getElementById('panel-title')?.textContent); }
+async function panelChangeSeverity(sev) { if (!panelActionId) return; await api(`/api/actions/${panelActionId}/severity`, { method: 'PATCH', body: JSON.stringify({ severity: sev }) }); const a = ACTIONS.find(x => x.id === panelActionId); if (a) a.severity = sev; loadActionCounts(); loadActionItems(); loadPanelContent(panelActionId); }
+async function panelReopen() { if (!panelActionId) return; await api(`/api/actions/${panelActionId}/reopen`, { method: 'PATCH', body: JSON.stringify({}) }); loadActionCounts(); loadActionItems(); loadPanelContent(panelActionId); }
 
-async function changeActionSeverity(id, severity) {
-  await api(`/api/actions/${id}/severity`, { method: 'PATCH', body: JSON.stringify({ severity }) });
-  loadActionCounts();
-  loadActionItems();
-}
+// Legacy compat — keep these working for other callers
+async function toggleActionThread(id) { openActionPanel(id); }
+function renderThread(actionId, messages) { if (panelActionId === actionId) { const action = ACTIONS.find(a => a.id === actionId); renderPanelThread(actionId, action, messages); } }
+async function sendActionReply(actionId) { sendPanelReply(); }
+async function deferActionItem(id) { panelActionId = id; panelDefer(); }
+async function changeActionSeverity(id, severity) { panelActionId = id; panelChangeSeverity(severity); }
+async function reopenAction(id) { panelActionId = id; panelReopen(); }
 
-async function reopenAction(id) {
-  await api(`/api/actions/${id}/reopen`, { method: 'PATCH', body: JSON.stringify({}) });
-  actionExpandedId = null;
-  loadActionCounts();
-  loadActionItems();
-}
+// Keyboard shortcuts for actions
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  if (document.getElementById('sec-actions')?.classList.contains('hidden')) return;
+  if (e.key === 'Escape' && panelActionId) { closeActionPanel(); return; }
+  const rows = document.querySelectorAll('.action-row');
+  if (!rows.length) return;
+  const currentIdx = Array.from(rows).findIndex(r => r.classList.contains('active-row'));
+  if (e.key === 'j' || e.key === 'ArrowDown') { e.preventDefault(); const next = Math.min(currentIdx + 1, rows.length - 1); const id = parseInt(rows[next].id.replace('action-row-', '')); openActionPanel(id); }
+  if (e.key === 'k' || e.key === 'ArrowUp') { e.preventDefault(); const prev = Math.max(currentIdx - 1, 0); const id = parseInt(rows[prev].id.replace('action-row-', '')); openActionPanel(id); }
+  if (e.key === 'r' && panelActionId) { e.preventDefault(); document.getElementById('panel-reply-input')?.focus(); }
+});
 
 function renderActionPagination(data) {
   const { page, pages, total } = data;
-  if (pages <= 1) { document.getElementById('action-pagination').innerHTML = `<span class="text-xs text-[#64748b]">${total} item${total !== 1 ? 's' : ''}</span><div></div>`; return; }
+  const el = document.getElementById('action-pagination');
+  if (!el) return;
+  if (pages <= 1) { el.innerHTML = `<span class="text-xs text-[#64748b]">${total} item${total !== 1 ? 's' : ''}</span><div></div>`; return; }
   
   let btns = '';
-  for (let i = 1; i <= pages; i++) {
+  const maxBtns = 7;
+  let start = Math.max(1, page - Math.floor(maxBtns/2));
+  let end = Math.min(pages, start + maxBtns - 1);
+  start = Math.max(1, end - maxBtns + 1);
+  for (let i = start; i <= end; i++) {
     btns += `<button class="pagination-btn ${i === page ? 'active' : ''}" onclick="actionCurrentPage=${i};loadActionItems()">${i}</button>`;
   }
-  document.getElementById('action-pagination').innerHTML = `
+  el.innerHTML = `
     <span class="text-xs text-[#64748b]">${total} items · Page ${page} of ${pages}</span>
     <div class="flex gap-1">
       <button class="pagination-btn" onclick="actionCurrentPage=Math.max(1,actionCurrentPage-1);loadActionItems()" ${page <= 1 ? 'disabled' : ''}>‹</button>
@@ -2587,60 +2861,47 @@ function toggleSummonDropdown(ddId) {
   const wasOpen = dd.classList.contains('open');
   // Close all dropdowns first
   document.querySelectorAll('.summon-dropdown.open').forEach(d => d.classList.remove('open'));
+  // Clean up any fixed menus
+  document.querySelectorAll('.summon-dropdown-menu.fixed-menu').forEach(m => {
+    m.style.display = 'none'; 
+    m.classList.remove('fixed-menu');
+  });
+  
   if (wasOpen) return;
+  
   // Build menu
   const menu = dd.querySelector('.summon-dropdown-menu');
   const isHeader = ddId === 'header-summon-dropdown';
-  const actionId = isHeader ? null : ddId.replace('summon-dd-', '');
+  const actionId = isHeader ? null : ddId.replace('summon-dd-', '').replace('table-summon-', '').replace('card-summon-', ''); // Handle various ID formats
+  
   menu.innerHTML = VP_ROSTER.map(vp => {
-    const key = actionId ? `${actionId}-${vp}` : `all-${vp}`;
+    const key = actionId && !isNaN(parseInt(actionId)) ? `${actionId}-${vp}` : `all-${vp}`;
     const cooled = summonCooldowns[key] && Date.now() - summonCooldowns[key] < 60000;
-    return `<div class="summon-dropdown-item ${cooled ? 'summoned' : ''}" onclick="event.stopPropagation();doSummon('${ddId}', ${actionId ? actionId : 'null'}, '${vp}', this)">${cooled ? '✅ ' : '📞 '}${vp}${cooled ? ' (summoned)' : ''}</div>`;
+    return `<div class="summon-dropdown-item ${cooled ? 'summoned' : ''}" onclick="event.stopPropagation();doSummon('${ddId}', ${actionId && !isNaN(parseInt(actionId)) ? actionId : 'null'}, '${vp}', this)">${cooled ? '✅ ' : '📞 '}${vp}${cooled ? ' (summoned)' : ''}</div>`;
   }).join('') +
     '<div class="summon-dropdown-divider"></div>' +
-    `<div class="summon-dropdown-item" onclick="event.stopPropagation();doSummon('${ddId}', ${actionId ? actionId : 'null'}, 'ALL', this)" style="font-weight:600;">📞 All VPs</div>`;
+    `<div class="summon-dropdown-item" onclick="event.stopPropagation();doSummon('${ddId}', ${actionId && !isNaN(parseInt(actionId)) ? actionId : 'null'}, 'ALL', this)" style="font-weight:600;">📞 All VPs</div>`;
+  
   dd.classList.add('open');
+
+  // Positioning Fix: Use fixed positioning to escape overflow clipping
+  const rect = dd.getBoundingClientRect();
+  menu.style.position = 'fixed';
+  menu.style.top = (rect.bottom + 5) + 'px';
+  menu.style.right = (window.innerWidth - rect.right) + 'px';
+  menu.style.left = 'auto';
+  menu.style.zIndex = '99999';
+  menu.style.display = 'block';
+  menu.classList.add('fixed-menu');
 }
 
-async function doSummon(ddId, actionId, vpName, itemEl) {
-  if (itemEl.classList.contains('summoned')) return;
-  itemEl.textContent = '⏳ Summoning...';
-  try {
-    if (vpName === 'ALL') {
-      const body = actionId ? {} : {};
-      // If on a card, summon all VPs for that action; if header, summon all VPs globally
-      if (actionId) {
-        await Promise.all(VP_ROSTER.map(vp => api(`/api/actions/${actionId}/summon`, { method: 'POST', body: JSON.stringify({ vp_name: vp }) })));
-        VP_ROSTER.forEach(vp => { summonCooldowns[`${actionId}-${vp}`] = Date.now(); });
-      } else {
-        await api('/api/actions/summon-all', { method: 'POST' });
-        VP_ROSTER.forEach(vp => { summonCooldowns[`all-${vp}`] = Date.now(); });
-      }
-      itemEl.textContent = '✅ All VPs summoned';
-      itemEl.classList.add('summoned');
-    } else {
-      if (actionId) {
-        await api(`/api/actions/${actionId}/summon`, { method: 'POST', body: JSON.stringify({ vp_name: vpName }) });
-        summonCooldowns[`${actionId}-${vpName}`] = Date.now();
-      } else {
-        await api('/api/actions/summon-all', { method: 'POST', body: JSON.stringify({ vp_name: vpName }) });
-        summonCooldowns[`all-${vpName}`] = Date.now();
-      }
-      itemEl.textContent = `✅ ${vpName} (summoned)`;
-      itemEl.classList.add('summoned');
-    }
-  } catch(e) {
-    itemEl.textContent = '❌ Failed';
-    setTimeout(() => { itemEl.textContent = `📞 ${vpName === 'ALL' ? 'All VPs' : vpName}`; }, 3000);
-  }
-  // Close dropdown after short delay
-  setTimeout(() => { document.getElementById(ddId)?.classList.remove('open'); }, 800);
-}
-
-// Close summon dropdowns on outside click
+// Update close handler to hide fixed menus
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('.summon-dropdown')) {
+  if (!e.target.closest('.summon-dropdown') && !e.target.closest('.summon-dropdown-menu')) {
     document.querySelectorAll('.summon-dropdown.open').forEach(d => d.classList.remove('open'));
+    document.querySelectorAll('.summon-dropdown-menu.fixed-menu').forEach(m => {
+      m.style.display = 'none';
+    });
   }
 });
 
@@ -2840,6 +3101,13 @@ async function syncAll() {
 // ═══ Organization Page ═══
 let orgAgents = [];
 let orgPanelOpen = false;
+let fleetMode = false;
+
+function toggleFleetMode() {
+  fleetMode = !fleetMode;
+  renderOrgSummary();
+  renderOrgTree();
+}
 
 function deptClass(dept) {
   if (!dept) return 'dept-ops';
@@ -2906,18 +3174,52 @@ async function loadOrgData() {
 function renderOrgSummary() {
   const active = orgAgents.filter(a => a.status === 'active').length;
   const sleeping = orgAgents.length - active;
-  const providers = {};
+  
+  // Provider usage stats
+  const providers = { 'Anthropic': 0, 'Google': 0, 'OpenAI': 0 };
+  const limits = { 'Anthropic': 10, 'Google': 15, 'OpenAI': 20 }; // Hardcoded limits
+  
   orgAgents.forEach(a => {
     if (a.model === 'human') return;
-    const p = a.model.includes('anthropic') ? 'Anthropic' : a.model.includes('google') ? 'Gemini' : a.model.includes('openai') ? 'OpenAI' : 'Other';
-    providers[p] = (providers[p]||0) + 1;
+    if (a.status !== 'active') return;
+    if (a.model.includes('anthropic')) providers['Anthropic']++;
+    else if (a.model.includes('google')) providers['Google']++;
+    else if (a.model.includes('openai') || a.model.includes('gpt')) providers['OpenAI']++;
   });
-  const provStr = Object.entries(providers).map(([k,v]) => `${k}: ${v}`).join(' · ');
+
+  const provHtml = Object.entries(providers).map(([p, count]) => {
+    const limit = limits[p] || 10;
+    const pct = Math.min(100, (count / limit) * 100);
+    const color = count >= limit ? '#ef4444' : count >= limit * 0.8 ? '#eab308' : '#3b82f6';
+    return `
+      <div class="flex-1 min-w-[120px]">
+        <div class="flex justify-between text-[10px] uppercase text-[#64748b] mb-1 font-semibold">
+          <span>${p}</span>
+          <span>${count}/${limit}</span>
+        </div>
+        <div class="h-1.5 bg-[#0f172a] rounded-full overflow-hidden">
+          <div class="h-full rounded-full transition-all duration-500" style="width:${pct}%; background:${color}"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
   document.getElementById('org-summary').innerHTML = `
-    <div class="org-summary-stat"><div class="num">${orgAgents.length}</div><div class="lbl">Total Agents</div></div>
-    <div class="org-summary-stat"><div class="num" style="color:#22c55e">${active}</div><div class="lbl">Active Now</div></div>
-    <div class="org-summary-stat"><div class="num" style="color:#64748b">${sleeping}</div><div class="lbl">Sleeping</div></div>
-    <div style="flex:1;display:flex;align-items:center;justify-content:flex-end"><span class="text-xs text-[#64748b]">${provStr}</span></div>
+    <div class="flex justify-between items-center w-full mb-4">
+      <div class="flex gap-6">
+        <div class="org-summary-stat"><div class="num">${orgAgents.length}</div><div class="lbl">Agents</div></div>
+        <div class="org-summary-stat"><div class="num" style="color:#22c55e">${active}</div><div class="lbl">Active</div></div>
+        <div class="org-summary-stat"><div class="num" style="color:#64748b">${sleeping}</div><div class="lbl">Sleeping</div></div>
+      </div>
+      <div class="flex gap-4 items-center">
+        <div class="flex gap-3 bg-[#1e293b] p-2 rounded-lg border border-[#334155] mr-4">
+          ${provHtml}
+        </div>
+        <button onclick="toggleFleetMode()" class="btn-secondary text-xs px-3 py-1.5 ${fleetMode ? 'bg-blue-900/50 border-blue-500 text-blue-200' : ''}">
+          🛠️ Manage Fleet
+        </button>
+      </div>
+    </div>
   `;
 }
 
@@ -3186,23 +3488,22 @@ function goToActionItem(actionId) {
 }
 
 async function loadActionItemsAndExpand(targetId) {
-  // Load all items to find the target
+  // Load all items to find the target page
   const data = await api(`/api/actions?page=1&limit=999`);
-  const items = data.items || [];
-  // Find which page the item is on (with limit=12)
-  const idx = items.findIndex(a => a.id === targetId);
+  ACTIONS = data.items || [];
+  const idx = ACTIONS.findIndex(a => a.id === targetId);
   if (idx >= 0) {
-    actionCurrentPage = Math.floor(idx / 12) + 1;
+    actionCurrentPage = Math.floor(idx / ACTION_PAGE_SIZE) + 1;
   }
   await loadActionItems();
-  // Expand and scroll after render
-  setTimeout(async () => {
-    await toggleActionThread(targetId);
-    const card = document.getElementById(`action-card-${targetId}`);
-    if (card) {
-      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      card.style.boxShadow = '0 0 0 2px var(--accent), 0 4px 20px rgba(59,130,246,0.3)';
-      setTimeout(() => { card.style.boxShadow = ''; }, 3000);
+  // Open panel after render
+  setTimeout(() => {
+    openActionPanel(targetId);
+    const row = document.getElementById(`action-row-${targetId}`);
+    if (row) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      row.style.boxShadow = '0 0 0 2px var(--accent)';
+      setTimeout(() => { row.style.boxShadow = ''; }, 3000);
     }
   }, 200);
 }
@@ -3257,108 +3558,59 @@ async function incrementalRefresh() {
 }
 
 function refreshActionItemsInPlace() {
-  // Update summary cards and filter chips from cached counts
+  // Update summary bar and filter chips from cached counts
   renderActionSummaryCards();
   renderActionFilterChips();
-
-  // Update sync time
   loadSyncStatus();
 
-  // If no cards rendered yet or action section not visible, skip DOM patching
-  const listEl = document.getElementById('action-items-list');
-  if (!listEl || !listEl.children.length) return;
+  const tbody = document.getElementById('action-items-tbody');
+  if (!tbody) return;
 
   // Fetch current page items for in-place updates
   const search = document.getElementById('action-search')?.value || '';
-  const sort = document.getElementById('action-sort')?.value || 'severity';
   let statusParam = actionCurrentFilter;
-  let url = `/api/actions?page=${actionCurrentPage}&limit=12`;
-  if (statusParam && statusParam !== 'all') url += `&status=${statusParam}`;
+  let url = `/api/actions?page=${actionCurrentPage}&limit=${ACTION_PAGE_SIZE}`;
+  if (statusParam) url += `&status=${statusParam}`;
   if (actionCurrentSeverity) url += `&severity=${actionCurrentSeverity}`;
   if (actionCurrentRequester) url += `&requester=${encodeURIComponent(actionCurrentRequester)}`;
+  if (actionCurrentOwner) url += `&owner=${encodeURIComponent(actionCurrentOwner)}`;
   if (search) url += `&search=${encodeURIComponent(search)}`;
 
   api(url).then(data => {
     let items = data.items || [];
-    if (sort === 'last_activity') items.sort((a, b) => new Date(b.last_activity || b.updated_at) - new Date(a.last_activity || a.updated_at));
-    else if (sort === 'created') items.sort((a, b) => new Date(b.opened_date) - new Date(a.opened_date));
-    else if (sort === 'department') items.sort((a, b) => (a.requester || '').localeCompare(b.requester || ''));
 
-    // Patch each card in-place instead of replacing innerHTML
+    // Update rows in-place
     for (const a of items) {
-      const card = document.getElementById(`action-card-${a.id}`);
-      if (!card) continue;
-
-      // Skip the expanded card entirely — user may be interacting with it
-      if (actionExpandedId === a.id) continue;
-
+      const row = document.getElementById(`action-row-${a.id}`);
+      if (!row) continue;
       // Update status badge
-      const statusEl = card.querySelector('.status-badge');
-      if (statusEl) {
-        statusEl.className = `status-badge status-${a.status}`;
-        statusEl.textContent = statusLabel(a.status);
-      }
-
+      const statusEl = row.querySelector('.status-badge');
+      if (statusEl) { statusEl.className = `status-badge status-${a.status}`; statusEl.textContent = statusLabel(a.status); }
       // Update severity badge
-      const sevEl = card.querySelector('[class*="sev-badge-"]');
-      if (sevEl) {
-        sevEl.className = `sev-badge-${a.severity} px-2 py-0.5 rounded text-xs`;
-        sevEl.textContent = severityShort(a.severity);
-      }
-
-      // Update message count
-      const msgBadges = card.querySelectorAll('.text-xs.text-\\[\\#64748b\\]');
-      msgBadges.forEach(el => {
-        if (el.textContent.includes('💬')) {
-          el.textContent = a.message_count ? `💬 ${a.message_count}` : '';
-        }
-        if (el.textContent.includes('🕐')) {
-          el.textContent = `🕐 ${timeAgo(a.last_activity || a.updated_at)}`;
-        }
-      });
-
-      // Update stale tag
-      const stale = Math.floor((new Date() - new Date(a.last_activity || a.updated_at || a.opened_date)) / 864e5);
-      const existingStale = card.querySelector('[class*="bg-red-900"]');
-      if (['open', 'awaiting_david'].includes(a.status) && stale >= 3) {
-        if (existingStale) existingStale.innerHTML = `⚠ ${stale}d`;
-      } else if (existingStale) {
-        existingStale.remove();
-      }
-
-      // Update unread dot
-      const needsAttention = a.status === 'awaiting_david';
-      const unreadDot = card.querySelector('.unread-dot');
-      if (needsAttention && !unreadDot) {
-        const titleArea = card.querySelector('.flex.items-center.gap-2');
-        if (titleArea) titleArea.insertAdjacentHTML('afterbegin', '<span class="unread-dot"></span>');
-      } else if (!needsAttention && unreadDot) {
-        unreadDot.remove();
-      }
+      const sevEl = row.querySelector('[class*="sev-badge-"]');
+      if (sevEl) { sevEl.className = `sev-badge-${a.severity} px-2 py-0.5 rounded text-xs`; sevEl.textContent = severityShort(a.severity); }
     }
 
-    // Update pagination
     renderActionPagination(data);
 
-    // If item count changed significantly (new/deleted items), and user isn't typing, do full re-render
-    const existingCards = listEl.querySelectorAll('.action-card');
-    if (existingCards.length !== items.length && !actionExpandedId) {
-      renderActionCards(items);
+    // If row count changed, full re-render
+    const existingRows = tbody.querySelectorAll('.action-row');
+    if (existingRows.length !== items.length) {
+      renderActionTable(items);
     }
   });
 }
 
 async function refreshExpandedThread(actionId) {
-  // Only append new messages — don't touch the input field
-  const msgsEl = document.getElementById(`action-msgs-${actionId}`);
-  const inputEl = document.getElementById(`action-reply-${actionId}`);
-  if (!msgsEl) return;
+  // Refresh thread in the slide-out panel
+  const threadEl = document.getElementById('panel-thread');
+  if (!threadEl || panelActionId !== actionId) return;
 
   const messages = await api(`/api/actions/${actionId}/messages`);
-  const currentMsgCount = msgsEl.querySelectorAll('.chat-bubble').length;
+  const currentMsgCount = threadEl.querySelectorAll('.chat-bubble').length;
 
   if (messages.length > currentMsgCount) {
-    // Append only new messages
+    const action = ACTIONS.find(a => a.id === actionId);
     const newMsgs = messages.slice(currentMsgCount);
     for (const m of newMsgs) {
       const isDavid = m.sender === 'David';
@@ -3371,11 +3623,10 @@ async function refreshExpandedThread(actionId) {
           <div class="chat-bubble ${bubbleClass}">${m.message.replace(/\n/g, '<br>')}</div>
         </div>
       </div>`;
-      msgsEl.insertAdjacentHTML('beforeend', html);
+      threadEl.insertAdjacentHTML('beforeend', html);
     }
-    // Auto-scroll only if user was near the bottom
-    const nearBottom = msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight < 100;
-    if (nearBottom) msgsEl.scrollTop = msgsEl.scrollHeight;
+    const nearBottom = threadEl.scrollHeight - threadEl.scrollTop - threadEl.clientHeight < 100;
+    if (nearBottom) threadEl.scrollTop = threadEl.scrollHeight;
   }
 }
 

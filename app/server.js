@@ -511,6 +511,8 @@ app.get('/api/actions', (req, res) => {
   // Apply filters
   if (severity) actions = actions.filter(a => a.severity === severity);
   if (requester) actions = actions.filter(a => a.requester && a.requester.toLowerCase().includes(requester.toLowerCase()));
+  const owner = req.query.owner;
+  if (owner) actions = actions.filter(a => a.owner && a.owner.toLowerCase() === owner.toLowerCase());
   if (search) {
     const q = search.toLowerCase();
     // Also search in messages
@@ -546,6 +548,10 @@ app.get('/api/actions/counts', (req, res) => {
   const requesters = {};
   all.forEach(a => { if (a.requester) requesters[a.requester] = (requesters[a.requester] || 0) + 1; });
   counts.requesters = requesters;
+  // Owners
+  const owners = {};
+  all.forEach(a => { if (a.owner) owners[a.owner] = (owners[a.owner] || 0) + 1; });
+  counts.owners = owners;
   res.json(counts);
 });
 
@@ -1241,7 +1247,7 @@ app.get('/api/org/agents/:id', (req, res) => {
   const agent = stmts.getAgent.get(req.params.id);
   if (!agent) return res.status(404).json({ error: 'Agent not found' });
   agent.capabilities = JSON.parse(agent.capabilities || '[]');
-  const activity = stmts.getAgentActivity.all(req.params.id, 5);
+  const activity = stmts.getAgentActivity.all(req.params.id, 10);
   res.json({ ...agent, recent_activity: activity });
 });
 
@@ -1285,6 +1291,13 @@ app.post('/api/org/agents/batch-status', (req, res) => {
       last_active_at: item.last_active_at ?? agent.last_active_at,
       next_wake_at: item.next_wake_at ?? agent.next_wake_at,
     });
+    // Log activity on status transitions
+    if (item.current_task && item.status === 'active' && item.current_task !== agent.current_task) {
+      stmts.insertAgentActivity.run({ agent_id: item.agent_id, task: item.current_task, status: 'started', started_at: new Date().toISOString() });
+    }
+    if (item.last_task && item.status === 'sleeping' && item.last_task !== agent.last_task) {
+      stmts.insertAgentActivity.run({ agent_id: item.agent_id, task: item.last_task, status: 'completed', started_at: item.last_active_at || new Date().toISOString() });
+    }
     results.push({ agent_id: item.agent_id, ok: true });
   }
   broadcast('agents_batch_status', results);
@@ -1305,6 +1318,66 @@ app.post('/api/org/agents/:id/wake', (req, res) => {
   logActivity('wake', 'agent', null, `Wake request for ${agent.name}: ${payload.message}`, payload.requested_by);
   broadcast('agent_wake', payload);
   res.json({ ok: true, ...payload });
+});
+
+// ─── Fleet Management API ───────────────────────────────────────
+app.get('/api/config/models', (req, res) => {
+  // Hardcoded list as requested
+  const models = [
+    { id: 'anthropic/claude-opus-4-6', name: 'Claude Opus 4.6', provider: 'Anthropic' },
+    { id: 'openai-codex/gpt-5.2', name: 'GPT-5.2', provider: 'OpenAI' },
+    { id: 'google-antigravity/gemini-3-pro-high', name: 'Gemini 3 Pro High', provider: 'Google' },
+    { id: 'google-antigravity/gemini-3-flash', name: 'Gemini 3 Flash', provider: 'Google' },
+    { id: 'anthropic/claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', provider: 'Anthropic' },
+    { id: 'openai-codex/gpt-5.2-mini', name: 'GPT-5.2 Mini', provider: 'OpenAI' }
+  ];
+  res.json(models);
+});
+
+app.post('/api/org/update-models', (req, res) => {
+  const updates = req.body; // Expects array: [{ agentId, model }, ...]
+  
+  if (!Array.isArray(updates)) {
+    return res.status(400).json({ error: 'Invalid payload, expected array' });
+  }
+
+  const OPENCLAW_CONFIG_PATH = '/root/.openclaw/openclaw.json';
+  
+  try {
+    const data = fs.readFileSync(OPENCLAW_CONFIG_PATH, 'utf8');
+    const config = JSON.parse(data);
+    
+    let changesCount = 0;
+    updates.forEach(update => {
+      const agent = config.agents.list.find(a => a.id === update.agentId);
+      if (agent) {
+        if (agent.model !== update.model) {
+          agent.model = update.model;
+          changesCount++;
+        }
+      }
+    });
+
+    if (changesCount > 0) {
+      fs.writeFileSync(OPENCLAW_CONFIG_PATH, JSON.stringify(config, null, 2));
+      logActivity('update', 'fleet', null, `Updated ${changesCount} agents models. Restarting...`, 'David');
+      
+      // Execute system restart as requested
+      const { exec } = require('child_process');
+      exec('openclaw gateway restart', (error, stdout, stderr) => {
+        if (error) {
+          console.error(`exec error: ${error}`);
+        }
+      });
+
+      res.json({ success: true, message: `Updated ${changesCount} agents and triggered restart.` });
+    } else {
+      res.json({ success: true, message: 'No changes needed.' });
+    }
+  } catch (err) {
+    console.error('Error updating config:', err);
+    res.status(500).json({ error: 'Failed to update config' });
+  }
 });
 
 // ─── SPA Route Handler ──────────────────────────────────────────
