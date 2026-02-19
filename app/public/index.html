@@ -3335,6 +3335,7 @@ async function syncAll() {
 // ═══ Organization Page ═══
 let orgAgents = [];
 let orgTokenUsage = [];
+let orgAgentTokenUsage = {};
 let orgPanelOpen = false;
 let fleetMode = false;
 
@@ -3390,22 +3391,38 @@ function orgCardHtml(a) {
       ? `<div class="task-text">Last: ${a.last_task}</div>`
       : '';
   const wakeLine = !isActive && a.next_wake_at ? `<div class="task-text">⏰ ${relTime(a.next_wake_at)}</div>` : '';
+  
+  // Format token usage for display (US-006)
+  const agentTokenData = orgAgentTokenUsage[a.agent_id];
+  let tokenPill = '';
+  if (agentTokenData && (agentTokenData.total_tokens > 0 || agentTokenData.total_cost > 0)) {
+    const tokens = agentTokenData.total_tokens || 0;
+    const cost = agentTokenData.total_cost || 0;
+    // Format: '125K tokens $0.45'
+    const tokenStr = tokens >= 1000 ? (tokens / 1000).toFixed(0) + 'K' : tokens;
+    const costStr = cost >= 1 ? '$' + cost.toFixed(2) : '$' + cost.toFixed(2);
+    tokenPill = `<div class="token-pill" style="font-size:10px;padding:2px 6px;border-radius:99px;background:#1e293b;color:#22c55e;margin-top:6px;display:inline-block;">${tokenStr} tokens ${costStr}</div>`;
+  }
+  
   return `<div class="org-card ${isActive?'active-agent':''}" onclick="openOrgPanel('${a.agent_id}')">
     <div class="flex items-center gap-2"><span class="status-dot ${isActive?'active':'sleeping'}"></span><span class="agent-name">${a.name}</span></div>
     <div class="agent-role">${a.role}</div>
     ${a.department ? `<span class="agent-dept ${dc}">${a.department}</span>` : ''}
     <span class="model-pill">${modelShort(a.model)}</span>
+    ${tokenPill}
     ${taskLine}${wakeLine}
   </div>`;
 }
 
 async function loadOrgData() {
-  const [agents, tokenUsage] = await Promise.all([
+  const [agents, tokenUsage, agentTokenUsage] = await Promise.all([
     api('/api/org/agents'),
-    api('/api/org/token-usage/by-provider')
+    api('/api/org/token-usage/by-provider'),
+    api('/api/org/token-usage/today')
   ]);
   orgAgents = agents;
   orgTokenUsage = tokenUsage || [];
+  orgAgentTokenUsage = agentTokenUsage || {};
   renderOrgSummary();
   renderOrgTree();
   document.getElementById('org-refresh-time').textContent = 'Updated ' + new Date().toLocaleTimeString();
@@ -3588,12 +3605,99 @@ async function openOrgPanel(agentId) {
   const caps = (a.capabilities||[]).map(c => `<span class="cap-pill">${c}</span>`).join('');
   const activity = (a.recent_activity||[]).map(act => `<div class="activity-item"><strong>${act.task}</strong><br><span style="color:var(--text-secondary)">${act.status} · ${relTime(act.completed_at)}</span></div>`).join('') || '<div class="text-xs text-[#64748b]">No recent activity</div>';
 
+  // Calculate date range for last 7 days
+  const today = new Date();
+  const endDate = today.toISOString().split('T')[0];
+  const startDate = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  
+  // Fetch token usage for the agent (last 7 days)
+  let tokenUsage = [];
+  let tokenSummary = { total_input: 0, total_output: 0, total_cost: 0 };
+  try {
+    const tokenData = await api(`/api/org/agents/${agentId}/token-usage?start_date=${startDate}&end_date=${endDate}`);
+    tokenUsage = tokenData.usage || [];
+    tokenSummary = tokenData.summary || tokenSummary;
+  } catch(e) {
+    console.error('Failed to load token usage:', e);
+  }
+
+  // Format token usage for display
+  const hasTokenData = tokenUsage && tokenUsage.length > 0;
+  const totalTokens = tokenSummary.total_input + tokenSummary.total_output;
+  const costStr = tokenSummary.total_cost > 0 ? '$' + tokenSummary.total_cost.toFixed(2) : '';
+  
+  // Build daily breakdown table (last 7 days, sorted ascending for chart)
+  const sortedUsage = [...(tokenUsage||[])].sort((a,b) => a.date.localeCompare(b.date));
+  const dailyTableRows = sortedUsage.slice(-7).reverse().map(u => `
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:8px 4px;font-size:12px;">${u.date || '-'}</td>
+      <td style="padding:8px 4px;font-size:12px;text-align:right;">${(u.input_tokens||0).toLocaleString()}</td>
+      <td style="padding:8px 4px;font-size:12px;text-align:right;">${(u.output_tokens||0).toLocaleString()}</td>
+      <td style="padding:8px 4px;font-size:12px;text-align:right;color:#22c55e;">$${(u.cost_usd||0).toFixed(2)}</td>
+    </tr>
+  `).join('');
+  
+  const dailyTableHTML = hasTokenData ? `
+    <div style="margin-top:16px;">
+      <div class="text-xs text-[#64748b] uppercase mb-2">Daily Breakdown (Last 7 Days)</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);">
+            <th style="padding:6px 4px;text-align:left;font-size:10px;color:#64748b;">Date</th>
+            <th style="padding:6px 4px;text-align:right;font-size:10px;color:#64748b;">Input</th>
+            <th style="padding:6px 4px;text-align:right;font-size:10px;color:#64748b;">Output</th>
+            <th style="padding:6px 4px;text-align:right;font-size:10px;color:#64748b;">Cost</th>
+          </tr>
+        </thead>
+        <tbody>${dailyTableRows || '<tr><td colspan="4" style="padding:16px;text-align:center;color:#64748b;">No usage data</td></tr>'}</tbody>
+      </table>
+    </div>
+  ` : '<div style="margin-top:16px;padding:12px;background:#1a1d2e;border-radius:8px;text-align:center;"><div class="text-xs text-[#64748b]">No token usage data for this period</div></div>';
+
+  // 7-day trend chart data
+  const chartLabels = sortedUsage.slice(-7).map(u => u.date ? u.date.slice(5) : '');
+  const chartInputData = sortedUsage.slice(-7).map(u => u.input_tokens || 0);
+  const chartOutputData = sortedUsage.slice(-7).map(u => u.output_tokens || 0);
+  const chartCostData = sortedUsage.slice(-7).map(u => u.cost_usd || 0);
+
   const wakeSection = !isActive && a.model !== 'human' ? `
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <h4 style="font-size:13px;font-weight:600;margin-bottom:8px">🚀 Wake Up ${a.name}</h4>
       <input class="wake-input" id="wake-msg" placeholder="What should ${a.name} work on?">
       <button class="wake-btn" onclick="wakeAgent('${a.agent_id}','${a.name}')">Send Wake Request</button>
     </div>` : '';
+
+  // Token usage summary
+  const tokenSummaryHTML = hasTokenData ? `
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+      <h4 style="font-size:13px;font-weight:600;margin-bottom:12px">💰 Token Usage (7-day)</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="background:#1a1d2e;padding:12px;border-radius:8px;">
+          <div class="text-xs text-[#64748b]">Total Input</div>
+          <div style="font-size:16px;font-weight:600;">${(tokenSummary.total_input||0).toLocaleString()}</div>
+        </div>
+        <div style="background:#1a1d2e;padding:12px;border-radius:8px;">
+          <div class="text-xs text-[#64748b]">Total Output</div>
+          <div style="font-size:16px;font-weight:600;">${(tokenSummary.total_output||0).toLocaleString()}</div>
+        </div>
+        <div style="background:#1a1d2e;padding:12px;border-radius:8px;">
+          <div class="text-xs text-[#64748b]">Total Tokens</div>
+          <div style="font-size:16px;font-weight:600;">${totalTokens.toLocaleString()}</div>
+        </div>
+        <div style="background:#1a1d2e;padding:12px;border-radius:8px;">
+          <div class="text-xs text-[#64748b]">Total Cost</div>
+          <div style="font-size:16px;font-weight:600;color:#22c55e;">$${(tokenSummary.total_cost||0).toFixed(2)}</div>
+        </div>
+      </div>
+      ${dailyTableHTML}
+      ${hasTokenData ? `
+      <div style="margin-top:16px;">
+        <div class="text-xs text-[#64748b] uppercase mb-2">7-Day Cost Trend</div>
+        <canvas id="token-usage-chart" height="120" style="width:100%;"></canvas>
+      </div>
+      ` : ''}
+    </div>
+  ` : '';
 
   document.getElementById('org-panel-content').innerHTML = `
     <div style="margin-bottom:20px">
@@ -3621,7 +3725,49 @@ async function openOrgPanel(agentId) {
       ${activity}
     </div>
     ${wakeSection}
+    ${tokenSummaryHTML}
   `;
+  
+  // Render the chart if we have data
+  if (hasTokenData && chartLabels.length > 0) {
+    setTimeout(() => {
+      const ctx = document.getElementById('token-usage-chart');
+      if (ctx) {
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: chartLabels,
+            datasets: [{
+              label: 'Cost ($)',
+              data: chartCostData,
+              backgroundColor: 'rgba(34, 197, 94, 0.6)',
+              borderColor: 'rgba(34, 197, 94, 1)',
+              borderWidth: 1,
+              borderRadius: 4,
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { display: false }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: { color: '#2d3148' },
+                ticks: { color: '#64748b', callback: v => '$' + v }
+              },
+              x: {
+                grid: { display: false },
+                ticks: { color: '#64748b', font: { size: 10 } }
+              }
+            }
+          }
+        });
+      }
+    }, 100);
+  }
+  
   document.getElementById('org-panel').classList.add('open');
   orgPanelOpen = true;
 }

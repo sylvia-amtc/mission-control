@@ -695,6 +695,13 @@ const stmts = {
   updateTokenUsage: db.prepare(`UPDATE token_usage SET input_tokens=@input_tokens, output_tokens=@output_tokens, total_tokens=@total_tokens, cost_usd=@cost_usd, provider=@provider, model=@model, task_type=@task_type WHERE id=@id`),
   getTokenUsageSummary: db.prepare(`SELECT agent_id, SUM(input_tokens) as total_input, SUM(output_tokens) as total_output, SUM(cost_usd) as total_cost FROM token_usage GROUP BY agent_id`),
   getDailyTokenUsage: db.prepare(`SELECT date, SUM(input_tokens) as total_input, SUM(output_tokens) as total_output, SUM(cost_usd) as total_cost FROM token_usage GROUP BY date ORDER BY date DESC`),
+  // Today's token usage by agent (for US-006)
+  getTodaysTokenUsageByAgent: db.prepare(`SELECT agent_id, SUM(input_tokens) as total_input, SUM(output_tokens) as total_output, SUM(total_tokens) as total_tokens, SUM(cost_usd) as total_cost FROM token_usage WHERE date = ? GROUP BY agent_id`),
+  // Daily token usage by agent for date range (for US-007)
+  getDailyTokenUsageByAgent: db.prepare(`SELECT date, input_tokens, output_tokens, total_tokens, cost_usd, provider, model 
+    FROM token_usage 
+    WHERE agent_id = ? AND date >= ? AND date <= ?
+    ORDER BY date DESC`),
   // Provider-aggregated token usage (for US-003)
   getTokenUsageByProvider: db.prepare(`SELECT 
     provider,
