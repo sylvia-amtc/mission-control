@@ -3336,6 +3336,7 @@ async function syncAll() {
 let orgAgents = [];
 let orgTokenUsage = [];
 let orgAgentTokenUsage = {};
+let orgTokenHistory = { history: [], trend: 'stable', total_cost: 0 };
 let orgPanelOpen = false;
 let fleetMode = false;
 
@@ -3415,14 +3416,16 @@ function orgCardHtml(a) {
 }
 
 async function loadOrgData() {
-  const [agents, tokenUsage, agentTokenUsage] = await Promise.all([
+  const [agents, tokenUsage, agentTokenUsage, tokenHistory] = await Promise.all([
     api('/api/org/agents'),
     api('/api/org/token-usage/by-provider'),
-    api('/api/org/token-usage/today')
+    api('/api/org/token-usage/today'),
+    api('/api/org/token-usage/history')
   ]);
   orgAgents = agents;
   orgTokenUsage = tokenUsage || [];
   orgAgentTokenUsage = agentTokenUsage || {};
+  orgTokenHistory = tokenHistory || { history: [], trend: 'stable', total_cost: 0 };
   renderOrgSummary();
   renderOrgTree();
   document.getElementById('org-refresh-time').textContent = 'Updated ' + new Date().toLocaleTimeString();
@@ -3508,6 +3511,42 @@ function renderOrgSummary() {
     ? provHtml 
     : `<div class="text-xs text-[#64748b] italic">No token usage data available</div>`;
 
+  // Generate 7-day trend sparkline and indicator (US-008)
+  const historyData = orgTokenHistory?.history || [];
+  const trend = orgTokenHistory?.trend || 'stable';
+  const totalCost = orgTokenHistory?.total_cost || 0;
+  const hasHistoryData = historyData.length > 0 && historyData.some(d => d.total_tokens > 0);
+  
+  const trendIcon = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→';
+  const trendColor = trend === 'up' ? '#ef4444' : trend === 'down' ? '#22c55e' : '#64748b';
+  const trendLabel = trend === 'up' ? 'Rising' : trend === 'down' ? 'Falling' : 'Stable';
+  const sparklineId = 'org-token-sparkline';
+  
+  const trendSection = hasHistoryData ? `
+    <div class="flex items-center gap-3 p-2 rounded-lg bg-[#0f172a] border border-[#1e293b] cursor-pointer hover:border-[#3b82f6] transition-colors" onclick="showTokenUsageDetail()" title="Click for details">
+      <div class="flex flex-col items-center min-w-[60px]">
+        <span class="text-[10px] text-[#64748b]">7-Day Trend</span>
+        <span class="text-lg font-bold" style="color:${trendColor}">${trendIcon}</span>
+        <span class="text-[10px]" style="color:${trendColor}">${trendLabel}</span>
+      </div>
+      <canvas id="${sparklineId}" width="100" height="40"></canvas>
+      <div class="flex flex-col items-end min-w-[50px]">
+        <span class="text-[10px] text-[#64748b]">7-Day Cost</span>
+        <span class="text-sm font-semibold text-[#22c55e]">${fmtCost(totalCost)}</span>
+      </div>
+    </div>
+  ` : '';
+
+  // Add sparkline rendering after HTML is inserted
+  setTimeout(() => {
+    if (!hasHistoryData) return;
+    const canvas = document.getElementById(sparklineId);
+    if (!canvas) return;
+    const data = historyData.map(d => d.cost_usd || 0);
+    const color = trend === 'up' ? '#ef4444' : trend === 'down' ? '#22c55e' : '#3b82f6';
+    drawMiniSparkline(canvas.getContext('2d'), canvas.width, canvas.height, color, data);
+  }, 50);
+
   document.getElementById('org-summary').innerHTML = `
     <div class="flex justify-between items-center w-full mb-4">
       <div class="flex gap-6">
@@ -3519,12 +3558,83 @@ function renderOrgSummary() {
         <div class="flex gap-2 bg-[#1e293b] p-2 rounded-lg border border-[#334155] mr-4 overflow-x-auto">
           ${tokenUsageSection}
         </div>
+        ${trendSection}
         <button onclick="toggleFleetMode()" class="btn-secondary text-xs px-3 py-1.5 ${fleetMode ? 'bg-blue-900/50 border-blue-500 text-blue-200' : ''}">
           🛠️ Manage Fleet
         </button>
       </div>
     </div>
   `;
+}
+
+// Show token usage detail panel (US-008)
+async function showTokenUsageDetail() {
+  const historyData = orgTokenHistory?.history || [];
+  const trend = orgTokenHistory?.trend || 'stable';
+  const totalCost = orgTokenHistory?.total_cost || 0;
+  
+  const trendIcon = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→';
+  const trendColor = trend === 'up' ? '#ef4444' : trend === 'down' ? '#22c55e' : '#64748b';
+  const trendLabel = trend === 'up' ? 'Rising' : trend === 'down' ? 'Falling' : 'Stable';
+  
+  // Format the daily breakdown table
+  const dailyRows = historyData.map(d => `
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:8px 4px;font-size:12px;">${d.date?.slice(5) || '-'}</td>
+      <td style="padding:8px 4px;font-size:12px;text-align:right;">${(d.input_tokens||0).toLocaleString()}</td>
+      <td style="padding:8px 4px;font-size:12px;text-align:right;">${(d.output_tokens||0).toLocaleString()}</td>
+      <td style="padding:8px 4px;font-size:12px;text-align:right;">${(d.total_tokens||0).toLocaleString()}</td>
+      <td style="padding:8px 4px;font-size:12px;text-align:right;color:#22c55e;">$${(d.cost_usd||0).toFixed(2)}</td>
+    </tr>
+  `).join('');
+  
+  const detailHTML = `
+    <div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;" onclick="if(event.target===this)this.remove()">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h2 style="font-size:18px;font-weight:600;">📊 Token Usage - 7 Day History</h2>
+          <button onclick="this.closest('[style*=\\"position:fixed\\"]').remove()" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:20px;">×</button>
+        </div>
+        
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+          <div style="background:#1a1d2e;padding:16px;border-radius:8px;text-align:center;">
+            <div class="text-xs text-[#64748b]">7-Day Cost</div>
+            <div style="font-size:24px;font-weight:700;color:#22c55e;">$${totalCost.toFixed(2)}</div>
+          </div>
+          <div style="background:#1a1d2e;padding:16px;border-radius:8px;text-align:center;">
+            <div class="text-xs text-[#64748b]">Trend</div>
+            <div style="font-size:24px;font-weight:700;color:${trendColor};">${trendIcon} ${trendLabel}</div>
+          </div>
+          <div style="background:#1a1d2e;padding:16px;border-radius:8px;text-align:center;">
+            <div class="text-xs text-[#64748b]">Avg/Day</div>
+            <div style="font-size:24px;font-weight:700;">$${(totalCost / 7).toFixed(2)}</div>
+          </div>
+        </div>
+        
+        <div style="margin-top:16px;">
+          <div class="text-xs text-[#64748b] uppercase mb-2">Daily Breakdown</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border);">
+                <th style="padding:6px 4px;text-align:left;font-size:10px;color:#64748b;">Date</th>
+                <th style="padding:6px 4px;text-align:right;font-size:10px;color:#64748b;">Input</th>
+                <th style="padding:6px 4px;text-align:right;font-size:10px;color:#64748b;">Output</th>
+                <th style="padding:6px 4px;text-align:right;font-size:10px;color:#64748b;">Total</th>
+                <th style="padding:6px 4px;text-align:right;font-size:10px;color:#64748b;">Cost</th>
+              </tr>
+            </thead>
+            <tbody>${dailyRows || '<tr><td colspan="5" style="padding:16px;text-align:center;color:#64748b;">No usage data</td></tr>'}</tbody>
+          </table>
+        </div>
+        
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);text-align:center;">
+          <button onclick="this.closest('[style*=\\"position:fixed\\"]').remove()" class="btn-secondary">Close</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', detailHTML);
 }
 
 function renderOrgTree() {

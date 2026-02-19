@@ -1451,6 +1451,77 @@ app.get('/api/org/token-usage/by-provider', (req, res) => {
   res.json(response);
 });
 
+// GET /api/org/token-usage/today - Get today's token usage by agent (US-006)
+app.get('/api/org/token-usage/today', (req, res) => {
+  // Get today's date in YYYY-MM-DD format
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Get all token usage for today, grouped by agent
+  const usage = stmts.getTodaysTokenUsageByAgent.all(today);
+  
+  // Convert to a map for easy lookup
+  const usageMap = {};
+  usage.forEach(u => {
+    usageMap[u.agent_id] = {
+      total_input: u.total_input || 0,
+      total_output: u.total_output || 0,
+      total_tokens: u.total_tokens || 0,
+      total_cost: u.total_cost || 0
+    };
+  });
+  
+  res.json(usageMap);
+});
+
+// GET /api/org/token-usage/history - Get 7-day historical token usage (US-008)
+app.get('/api/org/token-usage/history', (req, res) => {
+  const today = new Date();
+  const endDate = today.toISOString().split('T')[0];
+  const startDate = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  
+  // Get all token usage for the last 7 days, grouped by date
+  const usage = stmts.getDailyTokenUsage.all();
+  
+  // Filter to last 7 days and ensure we have all dates (fill in missing with zeros)
+  const usageMap = {};
+  usage.forEach(u => {
+    usageMap[u.date] = {
+      date: u.date,
+      input_tokens: u.total_input || 0,
+      output_tokens: u.total_output || 0,
+      total_tokens: (u.total_input || 0) + (u.total_output || 0),
+      cost_usd: u.total_cost || 0
+    };
+  });
+  
+  // Build array with all 7 days, filling missing dates with zeros
+  const history = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
+    const dateStr = d.toISOString().split('T')[0];
+    history.push(usageMap[dateStr] || {
+      date: dateStr,
+      input_tokens: 0,
+      output_tokens: 0,
+      total_tokens: 0,
+      cost_usd: 0
+    });
+  }
+  
+  // Calculate trend (compare first half average to second half average)
+  const firstHalf = history.slice(0, 3).reduce((sum, d) => sum + d.cost_usd, 0) / 3;
+  const secondHalf = history.slice(4).reduce((sum, d) => sum + d.cost_usd, 0) / 3;
+  let trend = 'stable';
+  if (secondHalf > firstHalf * 1.1) trend = 'up';
+  else if (secondHalf < firstHalf * 0.9) trend = 'down';
+  
+  res.json({
+    history,
+    trend,
+    total_cost: history.reduce((sum, d) => sum + d.cost_usd, 0)
+  });
+});
+
 // ─── Fleet Management API ───────────────────────────────────────
 app.get('/api/config/models', (req, res) => {
   // Hardcoded list as requested
