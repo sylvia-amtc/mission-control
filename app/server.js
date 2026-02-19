@@ -580,16 +580,19 @@ app.post('/api/actions', (req, res) => {
 });
 
 app.put('/api/actions/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const existing = stmts.getAction.get(id);
+  if (!existing) return res.status(404).json({ error: 'Action not found' });
   const a = {
-    id: parseInt(req.params.id),
-    title: req.body.title || '',
-    description: req.body.description || '',
-    owner: req.body.owner || 'David',
-    requester: req.body.requester || '',
-    severity: req.body.severity || 'yellow',
-    status: req.body.status || 'open',
-    notes: req.body.notes || '',
-    resolved_date: req.body.resolved_date || null,
+    id,
+    title: req.body.title !== undefined ? req.body.title : existing.title,
+    description: req.body.description !== undefined ? req.body.description : existing.description,
+    owner: req.body.owner !== undefined ? req.body.owner : existing.owner,
+    requester: req.body.requester !== undefined ? req.body.requester : existing.requester,
+    severity: req.body.severity !== undefined ? req.body.severity : existing.severity,
+    status: req.body.status !== undefined ? req.body.status : existing.status,
+    notes: req.body.notes !== undefined ? req.body.notes : existing.notes,
+    resolved_date: req.body.resolved_date !== undefined ? req.body.resolved_date : existing.resolved_date,
   };
   stmts.updateAction.run(a);
   broadcast('action_updated', a);
@@ -1320,6 +1323,93 @@ app.post('/api/org/agents/:id/wake', (req, res) => {
   res.json({ ok: true, ...payload });
 });
 
+// ─── Token Usage API ───────────────────────────────────────────
+// GET /api/org/token-usage - Get all token usage (with optional date range filters)
+app.get('/api/org/token-usage', (req, res) => {
+  const { start_date, end_date, agent_id } = req.query;
+  let usage;
+  
+  if (agent_id) {
+    usage = stmts.getTokenUsageByAgent.all(agent_id);
+  } else {
+    usage = stmts.getAllTokenUsage.all();
+  }
+  
+  // Apply date range filters
+  if (start_date || end_date) {
+    usage = usage.filter(u => {
+      if (start_date && u.date < start_date) return false;
+      if (end_date && u.date > end_date) return false;
+      return true;
+    });
+  }
+  
+  res.json(usage);
+});
+
+// GET /api/org/agents/:id/token-usage - Get token usage for specific agent
+app.get('/api/org/agents/:id/token-usage', (req, res) => {
+  const { start_date, end_date } = req.query;
+  const agentId = req.params.id;
+  
+  // Verify agent exists
+  const agent = stmts.getAgent.get(agentId);
+  if (!agent) return res.status(404).json({ error: 'Agent not found' });
+  
+  let usage = stmts.getTokenUsageByAgent.all(agentId);
+  
+  // Apply date range filters
+  if (start_date || end_date) {
+    usage = usage.filter(u => {
+      if (start_date && u.date < start_date) return false;
+      if (end_date && u.date > end_date) return false;
+      return true;
+    });
+  }
+  
+  // Get summary stats for this agent
+  const summary = stmts.getTokenUsageSummary.all().find(s => s.agent_id === agentId);
+  
+  res.json({
+    agent_id: agentId,
+    agent_name: agent.name,
+    usage,
+    summary: summary || { agent_id: agentId, total_input: 0, total_output: 0, total_cost: 0 }
+  });
+});
+
+// POST /api/org/agents/:id/token-usage - Record token usage for an agent
+app.post('/api/org/agents/:id/token-usage', (req, res) => {
+  const agentId = req.params.id;
+  
+  // Verify agent exists
+  const agent = stmts.getAgent.get(agentId);
+  if (!agent) return res.status(404).json({ error: 'Agent not found' });
+  
+  const tu = {
+    agent_id: agentId,
+    session_key: req.body.session_key || `session-${Date.now()}`,
+    model: req.body.model || agent.model || 'unknown',
+    provider: req.body.provider || 'unknown',
+    input_tokens: parseInt(req.body.input_tokens) || 0,
+    output_tokens: parseInt(req.body.output_tokens) || 0,
+    total_tokens: parseInt(req.body.total_tokens) || (parseInt(req.body.input_tokens) || 0) + (parseInt(req.body.output_tokens) || 0),
+    cost_usd: parseFloat(req.body.cost_usd) || 0,
+    task_type: req.body.task_type || null,
+    date: req.body.date || new Date().toISOString().split('T')[0],
+  };
+  
+  const result = stmts.insertTokenUsage.run(tu);
+  
+  logActivity('create', 'token_usage', result.lastInsertRowid, 
+    `Token usage recorded for ${agent.name}: ${tu.input_tokens} in / ${tu.output_tokens} out / $${tu.cost_usd}`, 
+    'system');
+  
+  broadcast('token_usage_created', { id: result.lastInsertRowid, agent_id: agentId, ...tu });
+  
+  res.status(201).json({ id: result.lastInsertRowid, agent_id: agentId, ...tu });
+});
+
 // ─── Fleet Management API ───────────────────────────────────────
 app.get('/api/config/models', (req, res) => {
   // Hardcoded list as requested
@@ -1380,6 +1470,262 @@ app.post('/api/org/update-models', (req, res) => {
   }
 });
 
+// ─── Visual Requests API ────────────────────────────────────────
+app.get('/api/visual-requests', (req, res) => {
+  const { status } = req.query;
+  let requests = status ? stmts.getVisualRequestsByStatus.all(status) : stmts.getAllVisualRequests.all();
+  const msgCounts = {};
+  stmts.getVisualRequestMessageCount.all().forEach(r => { msgCounts[r.request_id] = r.count; });
+  requests = requests.map(r => ({ ...r, message_count: msgCounts[r.id] || 0 }));
+  res.json(requests);
+});
+
+app.get('/api/visual-requests/:id', (req, res) => {
+  const vr = stmts.getVisualRequest.get(parseInt(req.params.id));
+  if (!vr) return res.status(404).json({ error: 'Not found' });
+  res.json(vr);
+});
+
+app.post('/api/visual-requests', (req, res) => {
+  const vr = {
+    title: req.body.title || 'Untitled Request',
+    description: req.body.description || '',
+    status: req.body.status || 'pending',
+    requesting_agent: req.body.requesting_agent || '',
+    department: req.body.department || '',
+    associated_post_id: req.body.associated_post_id || null,
+    drive_file_id: req.body.drive_file_id || '',
+    drive_url: req.body.drive_url || '',
+    reference_specs: req.body.reference_specs || '',
+    deadline: req.body.deadline || null,
+  };
+  const result = stmts.insertVisualRequest.run(vr);
+  const created = stmts.getVisualRequest.get(result.lastInsertRowid);
+  // Auto-add description as first message
+  if (vr.description) {
+    stmts.insertVisualRequestMessage.run({ request_id: result.lastInsertRowid, sender: vr.requesting_agent || 'System', message: vr.description });
+  }
+  logActivity('create', 'visual_request', created.id, `Visual request created: ${created.title}`, vr.requesting_agent || 'user');
+  broadcast('visual_request_created', created);
+  res.status(201).json(created);
+});
+
+app.patch('/api/visual-requests/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const existing = stmts.getVisualRequest.get(id);
+  if (!existing) return res.status(404).json({ error: 'Not found' });
+  const vr = {
+    id,
+    title: req.body.title ?? existing.title,
+    description: req.body.description ?? existing.description,
+    status: req.body.status ?? existing.status,
+    requesting_agent: req.body.requesting_agent ?? existing.requesting_agent,
+    department: req.body.department ?? existing.department,
+    associated_post_id: req.body.associated_post_id ?? existing.associated_post_id,
+    drive_file_id: req.body.drive_file_id ?? existing.drive_file_id,
+    drive_url: req.body.drive_url ?? existing.drive_url,
+    reference_specs: req.body.reference_specs ?? existing.reference_specs,
+    deadline: req.body.deadline ?? existing.deadline,
+  };
+  stmts.updateVisualRequest.run(vr);
+  const updated = stmts.getVisualRequest.get(id);
+  logActivity('update', 'visual_request', id, `Visual request updated: ${updated.title}`, req.body.actor || 'user');
+  broadcast('visual_request_updated', updated);
+  res.json(updated);
+});
+
+app.patch('/api/visual-requests/:id/status', (req, res) => {
+  const id = parseInt(req.params.id);
+  const existing = stmts.getVisualRequest.get(id);
+  if (!existing) return res.status(404).json({ error: 'Not found' });
+  const { status } = req.body;
+  if (!['pending', 'in_progress', 'done', 'changes_requested'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
+  stmts.updateVisualRequestStatus.run({ id, status });
+  const statusLabels = { pending: 'Pending', in_progress: 'In Progress', done: 'Done', changes_requested: 'Changes Requested' };
+  stmts.insertVisualRequestMessage.run({ request_id: id, sender: req.body.sender || 'David', message: `🔄 Status changed to ${statusLabels[status]}` });
+  logActivity('status', 'visual_request', id, `Visual request ${existing.title} → ${status}`, req.body.sender || 'David');
+  broadcast('visual_request_updated', { id, status });
+  res.json({ ok: true });
+});
+
+app.patch('/api/visual-requests/:id/done', (req, res) => {
+  const id = parseInt(req.params.id);
+  const existing = stmts.getVisualRequest.get(id);
+  if (!existing) return res.status(404).json({ error: 'Not found' });
+  stmts.markVisualRequestDone.run({ id, drive_file_id: req.body.drive_file_id || '', drive_url: req.body.drive_url || '' });
+  const driveInfo = req.body.drive_url ? ` — [Drive](${req.body.drive_url})` : '';
+  stmts.insertVisualRequestMessage.run({ request_id: id, sender: 'David', message: `✅ Marked as Done${driveInfo}` });
+  logActivity('done', 'visual_request', id, `Visual request completed: ${existing.title}`, 'David');
+  
+  // If linked to a social post, update the post's media_urls with the drive URL
+  if (existing.associated_post_id && req.body.drive_url) {
+    const post = stmts.getPost.get(existing.associated_post_id);
+    if (post) {
+      let mediaUrls = [];
+      try { mediaUrls = JSON.parse(post.media_urls || '[]'); } catch(e) {}
+      mediaUrls.push(req.body.drive_url);
+      stmts.updatePost.run({ ...post, id: post.id, media_urls: JSON.stringify(mediaUrls) });
+      broadcast('post_updated', { id: post.id });
+    }
+  }
+  
+  // Wake queue notification for requesting agent
+  if (existing.requesting_agent) {
+    const agentId = existing.requesting_agent.toLowerCase().split(' ')[0];
+    const payload = {
+      agent_id: agentId,
+      requested_by: 'David',
+      message: `Visual request "${existing.title}" is done! ${req.body.drive_url ? 'Drive: ' + req.body.drive_url : ''}`,
+      requested_at: new Date().toISOString(),
+    };
+    const filename = `wake-${agentId}-vr${id}-${Date.now()}.json`;
+    try { fs.writeFileSync(path.join(WAKE_DIR, filename), JSON.stringify(payload, null, 2)); } catch(e) {}
+  }
+  
+  broadcast('visual_request_done', { id, drive_url: req.body.drive_url });
+  res.json({ ok: true });
+});
+
+app.get('/api/visual-requests/:id/messages', (req, res) => {
+  res.json(stmts.getVisualRequestMessages.all(parseInt(req.params.id)));
+});
+
+app.post('/api/visual-requests/:id/messages', (req, res) => {
+  const reqId = parseInt(req.params.id);
+  const vr = stmts.getVisualRequest.get(reqId);
+  if (!vr) return res.status(404).json({ error: 'Not found' });
+  const sender = req.body.sender || 'David';
+  const message = (req.body.message || '').trim();
+  if (!message) return res.status(400).json({ error: 'Message required' });
+  const result = stmts.insertVisualRequestMessage.run({ request_id: reqId, sender, message });
+  logActivity('message', 'visual_request', reqId, `${sender} commented on: ${vr.title}`, sender);
+  broadcast('visual_request_message', { request_id: reqId, sender, message, id: result.lastInsertRowid });
+  res.status(201).json({ id: result.lastInsertRowid, request_id: reqId, sender, message });
+});
+
+// ─── Research Requests API ──────────────────────────────────────
+app.get('/api/research-requests', (req, res) => {
+  const { status } = req.query;
+  let requests = status ? stmts.getResearchRequestsByStatus.all(status) : stmts.getAllResearchRequests.all();
+  const msgCounts = {};
+  stmts.getResearchRequestMessageCount.all().forEach(r => { msgCounts[r.request_id] = r.count; });
+  requests = requests.map(r => ({ ...r, message_count: msgCounts[r.id] || 0 }));
+  res.json(requests);
+});
+
+app.get('/api/research-requests/:id', (req, res) => {
+  const rr = stmts.getResearchRequest.get(parseInt(req.params.id));
+  if (!rr) return res.status(404).json({ error: 'Not found' });
+  res.json(rr);
+});
+
+app.post('/api/research-requests', (req, res) => {
+  const rr = {
+    title: req.body.title || 'Untitled Research Request',
+    description: req.body.description || '',
+    status: req.body.status || 'pending',
+    requesting_agent: req.body.requesting_agent || '',
+    department: req.body.department || '',
+    priority: req.body.priority || 'normal',
+    drive_file_id: req.body.drive_file_id || '',
+    drive_url: req.body.drive_url || '',
+    context: req.body.context || '',
+    deadline: req.body.deadline || null,
+  };
+  const result = stmts.insertResearchRequest.run(rr);
+  const created = stmts.getResearchRequest.get(result.lastInsertRowid);
+  if (rr.description) {
+    stmts.insertResearchRequestMessage.run({ request_id: result.lastInsertRowid, sender: rr.requesting_agent || 'System', message: rr.description });
+  }
+  if (rr.context) {
+    stmts.insertResearchRequestMessage.run({ request_id: result.lastInsertRowid, sender: rr.requesting_agent || 'System', message: `📋 Context: ${rr.context}` });
+  }
+  logActivity('create', 'research_request', created.id, `Research request created: ${created.title}`, rr.requesting_agent || 'user');
+  broadcast('research_request_created', created);
+  res.status(201).json(created);
+});
+
+app.patch('/api/research-requests/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const existing = stmts.getResearchRequest.get(id);
+  if (!existing) return res.status(404).json({ error: 'Not found' });
+  const rr = {
+    id,
+    title: req.body.title ?? existing.title,
+    description: req.body.description ?? existing.description,
+    status: req.body.status ?? existing.status,
+    requesting_agent: req.body.requesting_agent ?? existing.requesting_agent,
+    department: req.body.department ?? existing.department,
+    priority: req.body.priority ?? existing.priority,
+    drive_file_id: req.body.drive_file_id ?? existing.drive_file_id,
+    drive_url: req.body.drive_url ?? existing.drive_url,
+    context: req.body.context ?? existing.context,
+    deadline: req.body.deadline ?? existing.deadline,
+  };
+  stmts.updateResearchRequest.run(rr);
+  const updated = stmts.getResearchRequest.get(id);
+  logActivity('update', 'research_request', id, `Research request updated: ${updated.title}`, req.body.actor || 'user');
+  broadcast('research_request_updated', updated);
+  res.json(updated);
+});
+
+app.patch('/api/research-requests/:id/status', (req, res) => {
+  const id = parseInt(req.params.id);
+  const existing = stmts.getResearchRequest.get(id);
+  if (!existing) return res.status(404).json({ error: 'Not found' });
+  const { status } = req.body;
+  if (!['pending', 'in_progress', 'done', 'changes_requested'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
+  stmts.updateResearchRequestStatus.run({ id, status });
+  const statusLabels = { pending: 'Pending', in_progress: 'In Progress', done: 'Done', changes_requested: 'Changes Requested' };
+  stmts.insertResearchRequestMessage.run({ request_id: id, sender: req.body.sender || 'David', message: `🔄 Status changed to ${statusLabels[status]}` });
+  logActivity('status', 'research_request', id, `Research request ${existing.title} → ${status}`, req.body.sender || 'David');
+  broadcast('research_request_updated', { id, status });
+  res.json({ ok: true });
+});
+
+app.patch('/api/research-requests/:id/done', (req, res) => {
+  const id = parseInt(req.params.id);
+  const existing = stmts.getResearchRequest.get(id);
+  if (!existing) return res.status(404).json({ error: 'Not found' });
+  stmts.markResearchRequestDone.run({ id, drive_file_id: req.body.drive_file_id || '', drive_url: req.body.drive_url || '' });
+  const driveInfo = req.body.drive_url ? ` — [Drive](${req.body.drive_url})` : '';
+  stmts.insertResearchRequestMessage.run({ request_id: id, sender: 'David', message: `✅ Research completed${driveInfo}\n📁 Filed to: Research & Intelligence / Deep Research Requests / Completed` });
+  logActivity('done', 'research_request', id, `Research request completed: ${existing.title}`, 'David');
+  
+  // Wake queue notification for requesting agent
+  if (existing.requesting_agent) {
+    const agentId = existing.requesting_agent.toLowerCase().split(' ')[0];
+    const payload = {
+      agent_id: agentId,
+      requested_by: 'David',
+      message: `Research request "${existing.title}" is done! ${req.body.drive_url ? 'Drive: ' + req.body.drive_url : ''} Filed to: Research & Intelligence / Deep Research Requests / Completed`,
+      requested_at: new Date().toISOString(),
+    };
+    const filename = `wake-${agentId}-rr${id}-${Date.now()}.json`;
+    try { fs.writeFileSync(path.join(WAKE_DIR, filename), JSON.stringify(payload, null, 2)); } catch(e) {}
+  }
+  
+  broadcast('research_request_done', { id, drive_url: req.body.drive_url });
+  res.json({ ok: true });
+});
+
+app.get('/api/research-requests/:id/messages', (req, res) => {
+  res.json(stmts.getResearchRequestMessages.all(parseInt(req.params.id)));
+});
+
+app.post('/api/research-requests/:id/messages', (req, res) => {
+  const reqId = parseInt(req.params.id);
+  const rr = stmts.getResearchRequest.get(reqId);
+  if (!rr) return res.status(404).json({ error: 'Not found' });
+  const sender = req.body.sender || 'David';
+  const message = (req.body.message || '').trim();
+  if (!message) return res.status(400).json({ error: 'Message required' });
+  const result = stmts.insertResearchRequestMessage.run({ request_id: reqId, sender, message });
+  logActivity('message', 'research_request', reqId, `${sender} commented on: ${rr.title}`, sender);
+  broadcast('research_request_message', { request_id: reqId, sender, message, id: result.lastInsertRowid });
+  res.status(201).json({ id: result.lastInsertRowid, request_id: reqId, sender, message });
+});
+
 // ─── SPA Route Handler ──────────────────────────────────────────
 // Serve index.html for all non-API routes (SPA routing)
 const serveIndexHtml = (req, res) => {
@@ -1399,6 +1745,8 @@ app.get('/calendar', serveIndexHtml);
 app.get('/org', serveIndexHtml);
 app.get('/sync', serveIndexHtml);
 app.get('/crm', serveIndexHtml);
+app.get('/visual-requests', serveIndexHtml);
+app.get('/research-requests', serveIndexHtml);
 
 // ─── Sync & Start ───────────────────────────────────────────────
 syncAll();
