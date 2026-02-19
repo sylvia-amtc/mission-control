@@ -3487,11 +3487,17 @@ function renderOrgSummary() {
     const color = pct >= 100 ? '#ef4444' : pct >= 80 ? '#eab308' : '#3b82f6';
     const limitDisplay = data.limit >= 1000 ? '$' + (data.limit / 1000).toFixed(0) + 'k' : '$' + data.limit;
     
+    // Determine card border style based on usage (US-010)
+    const isCritical = pct >= 95;
+    const isWarning = pct >= 80 && pct < 95;
+    const borderStyle = isCritical ? 'border-red-500' : isWarning ? 'border-yellow-500' : 'border-[#1e293b]';
+    const indicatorIcon = isCritical ? '🔴' : isWarning ? '🟡' : '';
+    
     return `
-      <div class="flex-1 min-w-[160px] p-2 rounded-lg bg-[#0f172a] border border-[#1e293b]">
+      <div class="flex-1 min-w-[160px] p-2 rounded-lg bg-[#0f172a] border-2 ${borderStyle}">
         <div class="flex justify-between items-center mb-2">
-          <span class="text-xs font-semibold text-[#e2e8f0]">${p}</span>
-          <span class="text-[10px] text-[#64748b]">${pct.toFixed(1)}%</span>
+          <span class="text-xs font-semibold text-[#e2e8f0]">${indicatorIcon} ${p}</span>
+          <span class="text-[10px] ${isCritical ? 'text-red-400 font-bold' : isWarning ? 'text-yellow-400 font-bold' : 'text-[#64748b]'}">${pct.toFixed(1)}%</span>
         </div>
         <div class="h-1.5 bg-[#1e293b] rounded-full overflow-hidden mb-2">
           <div class="h-full rounded-full transition-all duration-500" style="width:${pct}%; background:${color}"></div>
@@ -3547,8 +3553,55 @@ function renderOrgSummary() {
     drawMiniSparkline(canvas.getContext('2d'), canvas.width, canvas.height, color, data);
   }, 50);
 
+  // Token usage alerts (US-010)
+  // Determine highest alert state across all providers
+  let highestAlertState = 'normal';
+  let alertProviders = [];
+  
+  if (hasTokenData) {
+    Object.entries(providerData).forEach(([provider, data]) => {
+      const pct = data.percentage || ((data.cost / data.limit) * 100);
+      if (pct >= 95) {
+        if (highestAlertState !== 'critical') {
+          highestAlertState = 'critical';
+        }
+        alertProviders.push({ name: provider, percentage: pct, state: 'critical' });
+      } else if (pct >= 80) {
+        if (highestAlertState === 'normal') {
+          highestAlertState = 'warning';
+        }
+        alertProviders.push({ name: provider, percentage: pct, state: 'warning' });
+      }
+    });
+  }
+  
+  // Generate alert banner HTML
+  let tokenAlertBanner = '';
+  if (highestAlertState === 'critical') {
+    const criticalProviders = alertProviders.filter(p => p.state === 'critical');
+    const providerList = criticalProviders.map(p => `${p.name} (${p.percentage.toFixed(1)}%)`).join(', ');
+    tokenAlertBanner = `
+      <div class="flex items-center gap-3 px-4 py-3 mb-4 rounded-lg border-l-4 bg-red-950/50 border-red-500">
+        <span class="status-icon bg-red-500 pulse"></span>
+        <span class="text-sm font-medium text-red-200">🔴 Token Limit Critical: ${providerList} approaching 100% limit</span>
+      </div>
+    `;
+  } else if (highestAlertState === 'warning') {
+    const warningProviders = alertProviders.filter(p => p.state === 'warning');
+    const criticalProviders = alertProviders.filter(p => p.state === 'critical');
+    const allAlertProviders = [...criticalProviders, ...warningProviders];
+    const providerList = allAlertProviders.map(p => `${p.name} (${p.percentage.toFixed(1)}%)`).join(', ');
+    tokenAlertBanner = `
+      <div class="flex items-center gap-3 px-4 py-3 mb-4 rounded-lg border-l-4 bg-yellow-950/50 border-yellow-500">
+        <span class="status-icon bg-yellow-500 pulse"></span>
+        <span class="text-sm font-medium text-yellow-200">🟡 Token Usage Warning: ${providerList} exceeding 80% limit</span>
+      </div>
+    `;
+  }
+
   document.getElementById('org-summary').innerHTML = `
-    <div class="flex justify-between items-center w-full mb-4">
+    ${tokenAlertBanner}
+    <div class="flex justify-between items-center w-full ${tokenAlertBanner ? 'mb-0' : 'mb-4'}">
       <div class="flex gap-6">
         <div class="org-summary-stat"><div class="num">${orgAgents.length}</div><div class="lbl">Agents</div></div>
         <div class="org-summary-stat"><div class="num" style="color:#22c55e">${active}</div><div class="lbl">Active</div></div>
