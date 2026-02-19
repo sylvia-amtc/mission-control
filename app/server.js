@@ -1536,6 +1536,48 @@ app.get('/api/config/models', (req, res) => {
   res.json(models);
 });
 
+// ─── Token Rates Config API (US-009) ────────────────────────────
+app.get('/api/config/token-rates', (req, res) => {
+  // GET /api/config/token-rates - Get current rates
+  const rates = stmts.getAllTokenRates.all();
+  res.json(rates);
+});
+
+app.put('/api/config/token-rates', (req, res) => {
+  // PUT /api/config/token-rates - Update rates
+  const { rates } = req.body;
+  
+  if (!Array.isArray(rates)) {
+    return res.status(400).json({ error: 'Invalid payload, expected { rates: [...] }' });
+  }
+
+  const updateTx = db.transaction(() => {
+    for (const rate of rates) {
+      if (!rate.provider) {
+        throw new Error('provider is required');
+      }
+      // Check if exists
+      const existing = stmts.getTokenRateByProvider.get(rate.provider);
+      if (existing) {
+        stmts.updateTokenRate.run({
+          provider: rate.provider,
+          input_cost_per_1m: rate.input_cost_per_1m ?? existing.input_cost_per_1m,
+          output_cost_per_1m: rate.output_cost_per_1m ?? existing.output_cost_per_1m,
+          rate_limit: rate.rate_limit ?? existing.rate_limit,
+        });
+      }
+    }
+  });
+
+  try {
+    updateTx();
+    const updatedRates = stmts.getAllTokenRates.all();
+    res.json(updatedRates);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 app.post('/api/org/update-models', (req, res) => {
   const updates = req.body; // Expects array: [{ agentId, model }, ...]
   

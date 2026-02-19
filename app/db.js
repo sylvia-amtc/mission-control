@@ -275,6 +275,16 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_token_usage_agent_date ON token_usage(agent_id, timestamp);
+
+  CREATE TABLE IF NOT EXISTS token_rates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    provider TEXT NOT NULL UNIQUE,
+    input_cost_per_1m REAL NOT NULL DEFAULT 0,
+    output_cost_per_1m REAL NOT NULL DEFAULT 0,
+    rate_limit REAL NOT NULL DEFAULT 50000,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
 `);
 
   // ─── Token Usage Migration ─────────────────────────────────────
@@ -290,6 +300,23 @@ db.exec(`
       db.exec("CREATE INDEX IF NOT EXISTS idx_token_usage_agent_date ON token_usage(agent_id, date)");
     }
   } catch(e) { /* table may not exist or already migrated */ }
+
+  // ─── Token Rates Migration ───────────────────────────────────────
+  // Seed default token rates if table is empty
+  try {
+    const count = db.prepare('SELECT COUNT(*) as c FROM token_rates').get().c;
+    if (count === 0) {
+      const defaultRates = [
+        { provider: 'anthropic', input_cost_per_1m: 3.00, output_cost_per_1m: 15.00, rate_limit: 50000 },
+        { provider: 'openai', input_cost_per_1m: 2.50, output_cost_per_1m: 10.00, rate_limit: 50000 },
+        { provider: 'google', input_cost_per_1m: 1.25, output_cost_per_1m: 5.00, rate_limit: 50000 },
+        { provider: 'groq', input_cost_per_1m: 0.20, output_cost_per_1m: 0.20, rate_limit: 10000 },
+      ];
+      const ins = db.prepare('INSERT INTO token_rates (provider, input_cost_per_1m, output_cost_per_1m, rate_limit) VALUES (@provider, @input_cost_per_1m, @output_cost_per_1m, @rate_limit)');
+      const seedTx = db.transaction(() => { for (const r of defaultRates) ins.run(r); });
+      seedTx();
+    }
+  } catch(e) { /* table may not exist or already seeded */ }
 
   // ─── Migrations ─────────────────────────────────────────────────
   // Add last_activity column if missing
@@ -715,6 +742,11 @@ const stmts = {
     AND (? IS NULL OR date <= ?)
     GROUP BY provider
     ORDER BY total_cost_usd DESC`),
+
+  // Token Rates (for US-009)
+  getAllTokenRates: db.prepare('SELECT * FROM token_rates ORDER BY provider'),
+  getTokenRateByProvider: db.prepare('SELECT * FROM token_rates WHERE provider = ?'),
+  updateTokenRate: db.prepare(`UPDATE token_rates SET input_cost_per_1m = @input_cost_per_1m, output_cost_per_1m = @output_cost_per_1m, rate_limit = @rate_limit, updated_at = datetime('now') WHERE provider = @provider`),
 };
 
 function logActivity(type, entityType, entityId, message, actor = 'system') {
