@@ -201,11 +201,99 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_vendors_status ON vendors(status);
   CREATE INDEX IF NOT EXISTS idx_vendors_department ON vendors(department);
   CREATE INDEX IF NOT EXISTS idx_vendors_category ON vendors(category);
+
+  CREATE TABLE IF NOT EXISTS visual_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    status TEXT DEFAULT 'pending' CHECK(status IN ('pending','in_progress','done','changes_requested')),
+    requesting_agent TEXT DEFAULT '',
+    department TEXT DEFAULT '',
+    associated_post_id INTEGER,
+    drive_file_id TEXT DEFAULT '',
+    drive_url TEXT DEFAULT '',
+    reference_specs TEXT DEFAULT '',
+    deadline TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (associated_post_id) REFERENCES posts(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS visual_request_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    request_id INTEGER NOT NULL,
+    sender TEXT NOT NULL,
+    message TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (request_id) REFERENCES visual_requests(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_visual_requests_status ON visual_requests(status);
+  CREATE INDEX IF NOT EXISTS idx_visual_request_messages_req ON visual_request_messages(request_id);
+
+  CREATE TABLE IF NOT EXISTS research_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    status TEXT DEFAULT 'pending' CHECK(status IN ('pending','in_progress','done','changes_requested')),
+    requesting_agent TEXT DEFAULT '',
+    department TEXT DEFAULT '',
+    priority TEXT DEFAULT 'normal' CHECK(priority IN ('normal','high','urgent')),
+    drive_file_id TEXT DEFAULT '',
+    drive_url TEXT DEFAULT '',
+    context TEXT DEFAULT '',
+    deadline TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS research_request_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    request_id INTEGER NOT NULL,
+    sender TEXT NOT NULL,
+    message TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (request_id) REFERENCES research_requests(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_research_requests_status ON research_requests(status);
+  CREATE INDEX IF NOT EXISTS idx_research_request_messages_req ON research_request_messages(request_id);
+
+  CREATE TABLE IF NOT EXISTS token_usage (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    agent_id TEXT NOT NULL,
+    session_key TEXT NOT NULL,
+    model TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    input_tokens INTEGER NOT NULL DEFAULT 0,
+    output_tokens INTEGER NOT NULL DEFAULT 0,
+    total_tokens INTEGER NOT NULL DEFAULT 0,
+    cost_usd REAL NOT NULL DEFAULT 0,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    task_type TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_token_usage_agent_date ON token_usage(agent_id, timestamp);
 `);
 
-// ─── Migrations ─────────────────────────────────────────────────
-// Add last_activity column if missing
-try { db.exec("ALTER TABLE action_items ADD COLUMN last_activity TEXT"); } catch(e) { /* already exists */ }
+  // ─── Token Usage Migration ─────────────────────────────────────
+  // Add date column by extracting from timestamp if missing
+  try { 
+    const tableInfo = db.prepare("PRAGMA table_info(token_usage)").all();
+    const hasDateCol = tableInfo.some(col => col.name === 'date');
+    if (!hasDateCol) {
+      db.exec("ALTER TABLE token_usage ADD COLUMN date TEXT");
+      // Backfill date from timestamp
+      db.exec("UPDATE token_usage SET date = date(timestamp) WHERE date IS NULL");
+      // Create the required index
+      db.exec("CREATE INDEX IF NOT EXISTS idx_token_usage_agent_date ON token_usage(agent_id, date)");
+    }
+  } catch(e) { /* table may not exist or already migrated */ }
+
+  // ─── Migrations ─────────────────────────────────────────────────
+  // Add last_activity column if missing
+  try { db.exec("ALTER TABLE action_items ADD COLUMN last_activity TEXT"); } catch(e) { /* already exists */ }
 // Add action_messages table if missing (handles re-runs)
 try { db.exec(`CREATE TABLE IF NOT EXISTS action_messages (id INTEGER PRIMARY KEY AUTOINCREMENT, action_id INTEGER NOT NULL, sender TEXT NOT NULL, message TEXT NOT NULL, created_at TEXT DEFAULT (datetime('now')), FOREIGN KEY (action_id) REFERENCES action_items(id) ON DELETE CASCADE)`); } catch(e) {}
 try { db.exec("CREATE INDEX IF NOT EXISTS idx_action_messages_action ON action_messages(action_id)"); } catch(e) {}
@@ -566,12 +654,47 @@ const stmts = {
   getVendorsByCategory: db.prepare('SELECT * FROM vendors WHERE category = ? ORDER BY name'),
   getVendor: db.prepare('SELECT * FROM vendors WHERE id = ?'),
   insertVendor: db.prepare(`INSERT INTO vendors (name, category, url, plan, cost_monthly, cost_annual, billing_cycle, owner, users, department, status, login_email, notes, renewal_date) VALUES (@name, @category, @url, @plan, @cost_monthly, @cost_annual, @billing_cycle, @owner, @users, @department, @status, @login_email, @notes, @renewal_date)`),
+  // Visual Requests
+  getAllVisualRequests: db.prepare('SELECT * FROM visual_requests ORDER BY CASE status WHEN \'pending\' THEN 0 WHEN \'in_progress\' THEN 1 WHEN \'changes_requested\' THEN 2 ELSE 3 END, created_at DESC'),
+  getVisualRequestsByStatus: db.prepare('SELECT * FROM visual_requests WHERE status = ? ORDER BY created_at DESC'),
+  getVisualRequest: db.prepare('SELECT * FROM visual_requests WHERE id = ?'),
+  insertVisualRequest: db.prepare(`INSERT INTO visual_requests (title, description, status, requesting_agent, department, associated_post_id, drive_file_id, drive_url, reference_specs, deadline) VALUES (@title, @description, @status, @requesting_agent, @department, @associated_post_id, @drive_file_id, @drive_url, @reference_specs, @deadline)`),
+  updateVisualRequest: db.prepare(`UPDATE visual_requests SET title=@title, description=@description, status=@status, requesting_agent=@requesting_agent, department=@department, associated_post_id=@associated_post_id, drive_file_id=@drive_file_id, drive_url=@drive_url, reference_specs=@reference_specs, deadline=@deadline, updated_at=datetime('now') WHERE id=@id`),
+  updateVisualRequestStatus: db.prepare(`UPDATE visual_requests SET status=@status, updated_at=datetime('now') WHERE id=@id`),
+  markVisualRequestDone: db.prepare(`UPDATE visual_requests SET status='done', drive_file_id=@drive_file_id, drive_url=@drive_url, updated_at=datetime('now') WHERE id=@id`),
+  getVisualRequestMessages: db.prepare('SELECT * FROM visual_request_messages WHERE request_id = ? ORDER BY created_at ASC'),
+  insertVisualRequestMessage: db.prepare('INSERT INTO visual_request_messages (request_id, sender, message) VALUES (@request_id, @sender, @message)'),
+  getVisualRequestMessageCount: db.prepare('SELECT request_id, COUNT(*) as count FROM visual_request_messages WHERE request_id IN (SELECT id FROM visual_requests) GROUP BY request_id'),
+  getVisualRequestsByPostId: db.prepare('SELECT * FROM visual_requests WHERE associated_post_id = ?'),
+
+  // Research Requests
+  getAllResearchRequests: db.prepare('SELECT * FROM research_requests ORDER BY CASE status WHEN \'pending\' THEN 0 WHEN \'in_progress\' THEN 1 WHEN \'changes_requested\' THEN 2 ELSE 3 END, CASE priority WHEN \'urgent\' THEN 0 WHEN \'high\' THEN 1 ELSE 2 END, created_at DESC'),
+  getResearchRequestsByStatus: db.prepare('SELECT * FROM research_requests WHERE status = ? ORDER BY CASE priority WHEN \'urgent\' THEN 0 WHEN \'high\' THEN 1 ELSE 2 END, created_at DESC'),
+  getResearchRequest: db.prepare('SELECT * FROM research_requests WHERE id = ?'),
+  insertResearchRequest: db.prepare(`INSERT INTO research_requests (title, description, status, requesting_agent, department, priority, drive_file_id, drive_url, context, deadline) VALUES (@title, @description, @status, @requesting_agent, @department, @priority, @drive_file_id, @drive_url, @context, @deadline)`),
+  updateResearchRequest: db.prepare(`UPDATE research_requests SET title=@title, description=@description, status=@status, requesting_agent=@requesting_agent, department=@department, priority=@priority, drive_file_id=@drive_file_id, drive_url=@drive_url, context=@context, deadline=@deadline, updated_at=datetime('now') WHERE id=@id`),
+  updateResearchRequestStatus: db.prepare(`UPDATE research_requests SET status=@status, updated_at=datetime('now') WHERE id=@id`),
+  markResearchRequestDone: db.prepare(`UPDATE research_requests SET status='done', drive_file_id=@drive_file_id, drive_url=@drive_url, updated_at=datetime('now') WHERE id=@id`),
+  getResearchRequestMessages: db.prepare('SELECT * FROM research_request_messages WHERE request_id = ? ORDER BY created_at ASC'),
+  insertResearchRequestMessage: db.prepare('INSERT INTO research_request_messages (request_id, sender, message) VALUES (@request_id, @sender, @message)'),
+  getResearchRequestMessageCount: db.prepare('SELECT request_id, COUNT(*) as count FROM research_request_messages WHERE request_id IN (SELECT id FROM research_requests) GROUP BY request_id'),
+
   vendorSummary: db.prepare(`SELECT 
     COUNT(*) as total_count,
     COUNT(CASE WHEN status = 'active' THEN 1 END) as active_count,
     COUNT(CASE WHEN status = 'pending-approval' THEN 1 END) as pending_count,
     SUM(CASE WHEN billing_cycle = 'monthly' THEN cost_monthly WHEN billing_cycle = 'annual' THEN cost_annual/12 ELSE 0 END) as total_monthly_cost
     FROM vendors`),
+
+  // Token Usage
+  getAllTokenUsage: db.prepare('SELECT * FROM token_usage ORDER BY date DESC, agent_id'),
+  getTokenUsageByAgent: db.prepare('SELECT * FROM token_usage WHERE agent_id = ? ORDER BY date DESC'),
+  getTokenUsageByDate: db.prepare('SELECT * FROM token_usage WHERE date = ? ORDER BY agent_id'),
+  getTokenUsageByAgentAndDate: db.prepare('SELECT * FROM token_usage WHERE agent_id = ? AND date = ?'),
+  insertTokenUsage: db.prepare(`INSERT INTO token_usage (agent_id, session_key, model, provider, input_tokens, output_tokens, total_tokens, cost_usd, task_type, date) VALUES (@agent_id, @session_key, @model, @provider, @input_tokens, @output_tokens, @total_tokens, @cost_usd, @task_type, @date)`),
+  updateTokenUsage: db.prepare(`UPDATE token_usage SET input_tokens=@input_tokens, output_tokens=@output_tokens, total_tokens=@total_tokens, cost_usd=@cost_usd, provider=@provider, model=@model, task_type=@task_type WHERE id=@id`),
+  getTokenUsageSummary: db.prepare(`SELECT agent_id, SUM(input_tokens) as total_input, SUM(output_tokens) as total_output, SUM(cost_usd) as total_cost FROM token_usage GROUP BY agent_id`),
+  getDailyTokenUsage: db.prepare(`SELECT date, SUM(input_tokens) as total_input, SUM(output_tokens) as total_output, SUM(cost_usd) as total_cost FROM token_usage GROUP BY date ORDER BY date DESC`),
 };
 
 function logActivity(type, entityType, entityId, message, actor = 'system') {
