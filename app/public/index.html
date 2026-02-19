@@ -196,6 +196,8 @@
       <a href="/kpis" class="nav-item" data-section="kpis">📈 KPIs</a>
       <a href="/actions" class="nav-item" data-section="actions">📝 Action Items</a>
       <a href="/calendar" class="nav-item" data-section="calendar">📱 Social Calendar</a>
+      <a href="/visual-requests" class="nav-item" data-section="visual-requests">🎨 Visual Requests</a>
+      <a href="/research-requests" class="nav-item" data-section="research-requests">🔬 Research Requests</a>
       <a href="/blockers" class="nav-item" data-section="blockers">⚠️ Blockers</a>
       <a href="/reports" class="nav-item" data-section="reports">📂 Reports</a>
       <a href="/priorities" class="nav-item" data-section="priorities">🔥 Priorities</a>
@@ -951,6 +953,236 @@
       </div>
     </div>
 
+    <!-- ═══ Visual Requests ═══ -->
+    <section id="sec-visual-requests" class="hidden">
+      <style>
+        .vr-status-pending { background: #eab30833; color: #eab308; }
+        .vr-status-in_progress { background: #3b82f633; color: #3b82f6; }
+        .vr-status-done { background: #22c55e33; color: #22c55e; }
+        .vr-status-changes_requested { background: #f9731633; color: #f97316; }
+        .vr-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.15s; }
+        .vr-card:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .vr-chat-bubble { max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; word-wrap: break-word; }
+        .vr-chat-bubble.david { background: #1E3A5F; border-bottom-left-radius: 4px; margin-right: auto; }
+        .vr-chat-bubble.agent { background: #2D1F4E; border-bottom-right-radius: 4px; margin-left: auto; }
+        .vr-chat-bubble.system { background: #1E2235; margin: 0 auto; font-style: italic; color: var(--text-muted); font-size: 12px; text-align: center; max-width: 100%; }
+      </style>
+      <div class="flex justify-between items-center mb-6 flex-header">
+        <div>
+          <h2 class="text-2xl font-bold">🎨 Visual Requests</h2>
+          <p class="text-sm text-[#94a3b8] mt-1">AI generation queue · Visual assets requested by the team</p>
+        </div>
+        <div class="flex gap-2 items-center">
+          <select id="vr-status-filter" class="form-input text-xs" style="width:auto;padding:6px 12px;" onchange="loadVisualRequests()">
+            <option value="">All Statuses</option>
+            <option value="pending">⏳ Pending</option>
+            <option value="in_progress">🔄 In Progress</option>
+            <option value="changes_requested">✏️ Changes Requested</option>
+            <option value="done">✅ Done</option>
+          </select>
+          <button onclick="openNewVRModal()" class="btn-primary text-xs px-4 py-1.5">+ New Request</button>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" id="vr-summary"></div>
+      <div id="vr-list" class="space-y-3"></div>
+    </section>
+
+    <!-- Visual Request Detail Modal -->
+    <div id="vr-detail-modal" class="fixed inset-0 post-detail-overlay z-50 flex items-center justify-center hidden">
+      <div class="post-detail-panel p-0" style="max-width:950px;">
+        <div id="vr-detail-content"></div>
+      </div>
+    </div>
+
+    <!-- New Visual Request Modal -->
+    <div id="new-vr-modal" class="fixed inset-0 modal-overlay z-50 flex items-center justify-center hidden">
+      <div class="modal-content p-6" style="max-width:560px;">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-bold">New Visual Request</h3>
+          <button onclick="closeNewVRModal()" class="text-[#94a3b8] hover:text-white text-xl">&times;</button>
+        </div>
+        <form onsubmit="submitVR(event)">
+          <div class="mb-3">
+            <label class="form-label">Title</label>
+            <input type="text" id="vr-title" class="form-input" placeholder="What visual is needed?" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description / Specs</label>
+            <textarea id="vr-description" class="form-input" style="height:100px;" placeholder="Dimensions, style, colors, references..."></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <label class="form-label">Requesting Agent</label>
+              <select id="vr-agent" class="form-input">
+                <option value="Zara">Zara (Design)</option>
+                <option value="Max">Max (Marketing)</option>
+                <option value="Nadia">Nadia (Research)</option>
+                <option value="Elena">Elena (Sales)</option>
+                <option value="Viktor">Viktor (Engineering)</option>
+                <option value="Sylvia">Sylvia (COO)</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Deadline (optional)</label>
+              <input type="date" id="vr-deadline" class="form-input">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Associated Social Post (optional)</label>
+            <select id="vr-post-id" class="form-input">
+              <option value="">— None —</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Reference Specs / URLs</label>
+            <input type="text" id="vr-ref-specs" class="form-input" placeholder="Links to reference images, specs, etc.">
+          </div>
+          <div class="flex justify-end gap-2">
+            <button type="button" onclick="closeNewVRModal()" class="btn-ghost text-sm">Cancel</button>
+            <button type="submit" class="btn-primary text-sm">Create Request</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Mark Done Modal (Drive URL input) -->
+    <div id="vr-done-modal" class="fixed inset-0 modal-overlay z-50 flex items-center justify-center hidden">
+      <div class="modal-content p-6" style="max-width:460px;">
+        <h3 class="text-lg font-bold mb-4">✅ Mark as Done</h3>
+        <div class="mb-3">
+          <label class="form-label">Google Drive URL</label>
+          <input type="url" id="vr-done-drive-url" class="form-input" placeholder="https://drive.google.com/...">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Drive File ID (optional)</label>
+          <input type="text" id="vr-done-drive-id" class="form-input" placeholder="File ID">
+        </div>
+        <input type="hidden" id="vr-done-id">
+        <div class="flex justify-end gap-2">
+          <button onclick="closeVRDoneModal()" class="btn-ghost text-sm">Cancel</button>
+          <button onclick="submitVRDone()" class="btn-primary text-sm">✅ Mark Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Research Requests ═══ -->
+    <section id="sec-research-requests" class="hidden">
+      <style>
+        .rr-status-pending { background: #eab30833; color: #eab308; }
+        .rr-status-in_progress { background: #3b82f633; color: #3b82f6; }
+        .rr-status-done { background: #22c55e33; color: #22c55e; }
+        .rr-status-changes_requested { background: #f9731633; color: #f97316; }
+        .rr-priority-urgent { background: #ef444433; color: #ef4444; }
+        .rr-priority-high { background: #eab30833; color: #eab308; }
+        .rr-priority-normal { background: #64748b33; color: #94a3b8; }
+        .rr-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.15s; }
+        .rr-card:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .rr-chat-bubble { max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; word-wrap: break-word; }
+        .rr-chat-bubble.david { background: #1E3A5F; border-bottom-left-radius: 4px; margin-right: auto; }
+        .rr-chat-bubble.agent { background: #2D1F4E; border-bottom-right-radius: 4px; margin-left: auto; }
+        .rr-chat-bubble.system { background: #1E2235; margin: 0 auto; font-style: italic; color: var(--text-muted); font-size: 12px; text-align: center; max-width: 100%; }
+      </style>
+      <div class="flex justify-between items-center mb-6 flex-header">
+        <div>
+          <h2 class="text-2xl font-bold">🔬 Research Requests</h2>
+          <p class="text-sm text-[#94a3b8] mt-1">Deep research queue · Research requests from the team</p>
+        </div>
+        <div class="flex gap-2 items-center">
+          <select id="rr-status-filter" class="form-input text-xs" style="width:auto;padding:6px 12px;" onchange="loadResearchRequests()">
+            <option value="">All Statuses</option>
+            <option value="pending">⏳ Pending</option>
+            <option value="in_progress">🔄 In Progress</option>
+            <option value="changes_requested">✏️ Changes Requested</option>
+            <option value="done">✅ Done</option>
+          </select>
+          <button onclick="openNewRRModal()" class="btn-primary text-xs px-4 py-1.5">+ New Request</button>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" id="rr-summary"></div>
+      <div id="rr-list" class="space-y-3"></div>
+    </section>
+
+    <!-- Research Request Detail Modal -->
+    <div id="rr-detail-modal" class="fixed inset-0 post-detail-overlay z-50 flex items-center justify-center hidden">
+      <div class="post-detail-panel p-0" style="max-width:950px;">
+        <div id="rr-detail-content"></div>
+      </div>
+    </div>
+
+    <!-- New Research Request Modal -->
+    <div id="new-rr-modal" class="fixed inset-0 modal-overlay z-50 flex items-center justify-center hidden">
+      <div class="modal-content p-6" style="max-width:560px;">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-bold">New Research Request</h3>
+          <button onclick="closeNewRRModal()" class="text-[#94a3b8] hover:text-white text-xl">&times;</button>
+        </div>
+        <form onsubmit="submitRR(event)">
+          <div class="mb-3">
+            <label class="form-label">Title / Research Question</label>
+            <input type="text" id="rr-title" class="form-input" placeholder="What do you need researched?" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description / Scope</label>
+            <textarea id="rr-description" class="form-input" style="height:80px;" placeholder="Describe the research question in detail..."></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Context / Background</label>
+            <textarea id="rr-context" class="form-input" style="height:60px;" placeholder="Why is this research needed? What decisions depend on it?"></textarea>
+          </div>
+          <div class="grid grid-cols-3 gap-3 mb-3">
+            <div>
+              <label class="form-label">Requesting Agent</label>
+              <select id="rr-agent" class="form-input">
+                <option value="Nadia">Nadia (Research)</option>
+                <option value="Max">Max (Marketing)</option>
+                <option value="Elena">Elena (Sales)</option>
+                <option value="Viktor">Viktor (Engineering)</option>
+                <option value="Zara">Zara (Design)</option>
+                <option value="Sylvia">Sylvia (COO)</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Priority</label>
+              <select id="rr-priority" class="form-input">
+                <option value="normal">⚪ Normal</option>
+                <option value="high">🟡 High</option>
+                <option value="urgent">🔴 Urgent</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Deadline</label>
+              <input type="date" id="rr-deadline" class="form-input">
+            </div>
+          </div>
+          <div class="flex justify-end gap-2">
+            <button type="button" onclick="closeNewRRModal()" class="btn-ghost text-sm">Cancel</button>
+            <button type="submit" class="btn-primary text-sm">Create Request</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Research Request Done Modal -->
+    <div id="rr-done-modal" class="fixed inset-0 modal-overlay z-50 flex items-center justify-center hidden">
+      <div class="modal-content p-6" style="max-width:460px;">
+        <h3 class="text-lg font-bold mb-4">✅ Mark Research as Done</h3>
+        <p class="text-xs text-[#94a3b8] mb-3">File to: Research & Intelligence / Deep Research Requests / Completed</p>
+        <div class="mb-3">
+          <label class="form-label">Google Drive URL</label>
+          <input type="url" id="rr-done-drive-url" class="form-input" placeholder="https://drive.google.com/...">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Drive File ID (optional)</label>
+          <input type="text" id="rr-done-drive-id" class="form-input" placeholder="File ID">
+        </div>
+        <input type="hidden" id="rr-done-id">
+        <div class="flex justify-end gap-2">
+          <button onclick="closeRRDoneModal()" class="btn-ghost text-sm">Cancel</button>
+          <button onclick="submitRRDone()" class="btn-primary text-sm">✅ Mark Done</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ═══ Blockers ═══ -->
     <section id="sec-blockers" class="hidden">
       <div class="flex justify-between items-center mb-6 flex-header">
@@ -1360,6 +1592,8 @@ function connectWS() {
     if (msg.type.startsWith('action')) { loadActionCounts(); refreshActionItemsInPlace(); if (panelActionId) refreshExpandedThread(panelActionId); }
     if (msg.type.startsWith('deal') || msg.type.startsWith('crm')) loadPipeline();
     if (msg.type.startsWith('post')) loadCalendar();
+    if (msg.type.startsWith('visual_request')) { if (!document.getElementById('sec-visual-requests').classList.contains('hidden')) loadVisualRequests(); if (vrDetailId) openVRDetail(vrDetailId); }
+    if (msg.type.startsWith('research_request')) { if (!document.getElementById('sec-research-requests').classList.contains('hidden')) loadResearchRequests(); if (rrDetailId) openRRDetail(rrDetailId); }
     if (msg.type.startsWith('agent')) { if (!document.getElementById('sec-org').classList.contains('hidden')) loadOrgData(); }
   };
 }
@@ -3100,6 +3334,7 @@ async function syncAll() {
 
 // ═══ Organization Page ═══
 let orgAgents = [];
+let orgTokenUsage = [];
 let orgPanelOpen = false;
 let fleetMode = false;
 
@@ -3165,7 +3400,12 @@ function orgCardHtml(a) {
 }
 
 async function loadOrgData() {
-  orgAgents = await api('/api/org/agents');
+  const [agents, tokenUsage] = await Promise.all([
+    api('/api/org/agents'),
+    api('/api/org/token-usage/by-provider')
+  ]);
+  orgAgents = agents;
+  orgTokenUsage = tokenUsage || [];
   renderOrgSummary();
   renderOrgTree();
   document.getElementById('org-refresh-time').textContent = 'Updated ' + new Date().toLocaleTimeString();
@@ -3175,27 +3415,37 @@ function renderOrgSummary() {
   const active = orgAgents.filter(a => a.status === 'active').length;
   const sleeping = orgAgents.length - active;
   
-  // Provider usage stats
-  const providers = { 'Anthropic': 0, 'Google': 0, 'OpenAI': 0 };
-  const limits = { 'Anthropic': 10, 'Google': 15, 'OpenAI': 20 }; // Hardcoded limits
+  // Provider usage stats from token usage API
+  const providerCosts = {};
+  const limits = { 'Anthropic': 50000, 'Google': 50000, 'OpenAI': 50000, 'Groq': 10000, 'unknown': 10000 };
   
-  orgAgents.forEach(a => {
-    if (a.model === 'human') return;
-    if (a.status !== 'active') return;
-    if (a.model.includes('anthropic')) providers['Anthropic']++;
-    else if (a.model.includes('google')) providers['Google']++;
-    else if (a.model.includes('openai') || a.model.includes('gpt')) providers['OpenAI']++;
-  });
+  // Map API provider names to display names
+  const providerMap = {
+    'anthropic': 'Anthropic',
+    'google': 'Google',
+    'openai': 'OpenAI',
+    'groq': 'Groq'
+  };
+  
+  // Process token usage data from API
+  if (orgTokenUsage && orgTokenUsage.length > 0) {
+    orgTokenUsage.forEach(u => {
+      const displayName = providerMap[u.provider?.toLowerCase()] || u.provider || 'unknown';
+      providerCosts[displayName] = u.total_cost_usd || 0;
+    });
+  }
 
-  const provHtml = Object.entries(providers).map(([p, count]) => {
-    const limit = limits[p] || 10;
-    const pct = Math.min(100, (count / limit) * 100);
-    const color = count >= limit ? '#ef4444' : count >= limit * 0.8 ? '#eab308' : '#3b82f6';
+  const provHtml = Object.entries(providerCosts).map(([p, cost]) => {
+    const limit = limits[p] || 10000;
+    const pct = Math.min(100, (cost / limit) * 100);
+    const color = pct >= 100 ? '#ef4444' : pct >= 80 ? '#eab308' : '#3b82f6';
+    const costDisplay = cost >= 1000 ? `$${(cost/1000).toFixed(1)}k` : `$${cost.toFixed(0)}`;
+    const limitDisplay = limit >= 1000 ? `$${(limit/1000).toFixed(0)}k` : `$${limit}`;
     return `
       <div class="flex-1 min-w-[120px]">
         <div class="flex justify-between text-[10px] uppercase text-[#64748b] mb-1 font-semibold">
           <span>${p}</span>
-          <span>${count}/${limit}</span>
+          <span>${costDisplay}/${limitDisplay}</span>
         </div>
         <div class="h-1.5 bg-[#0f172a] rounded-full overflow-hidden">
           <div class="h-full rounded-full transition-all duration-500" style="width:${pct}%; background:${color}"></div>
@@ -3249,8 +3499,34 @@ function renderOrgTree() {
   for (const dept of depts) {
     const vp = vps.find(v => v.department === dept);
     const subs = byMgr[vp?.agent_id] || [];
-    if (subs.length === 0) continue;
     const deptId = dept.replace(/[^a-zA-Z]/g,'');
+
+    // Engineering uses AntFarm — show workflow cards instead of agents
+    if (dept.includes('Engineering')) {
+      const workflows = [
+        { id: 'feature-dev', name: 'Feature Dev', icon: '🚀', agents: 'Planner → Setup → Developer → Verifier → Tester → Reviewer', model: 'Sonnet 4' },
+        { id: 'bug-fix', name: 'Bug Fix', icon: '🐛', agents: 'Triager → Investigator → Setup → Fixer → Verifier → PR Creator', model: 'Sonnet 4' },
+        { id: 'security-audit', name: 'Security Audit', icon: '🔒', agents: 'Scanner → Prioritizer → Setup → Fixer → Verifier → Tester', model: 'Sonnet 4' }
+      ];
+      const wfCards = workflows.map(w => `
+        <div class="org-card" style="cursor:default;min-width:220px;max-width:280px">
+          <div class="flex items-center gap-2">
+            <span style="font-size:16px">${w.icon}</span>
+            <span class="agent-name">${w.name}</span>
+          </div>
+          <div class="agent-role" style="margin-top:4px">${w.agents}</div>
+          <span class="agent-dept dept-eng">AntFarm Workflow</span>
+          <span class="model-pill">${w.model}</span>
+        </div>
+      `).join('');
+      html += `<div class="org-dept-group">
+        <div class="org-dept-header" onclick="toggleDeptGroup('${deptId}')">▼ ${dept} — Runs with AntFarm (3 workflows, 18 agents)</div>
+        <div class="org-level" id="dept-${deptId}">${wfCards}</div>
+      </div>`;
+      continue;
+    }
+
+    if (subs.length === 0) continue;
     html += `<div class="org-dept-group">
       <div class="org-dept-header" onclick="toggleDeptGroup('${deptId}')">▼ ${dept} (${subs.length})</div>
       <div class="org-level" id="dept-${deptId}">${subs.map(s => orgCardHtml(s)).join('')}</div>
@@ -3354,7 +3630,9 @@ const routeMap = {
   '/priorities': 'priorities',
   '/initiatives': 'initiatives',
   '/reporting': 'reporting',
-  '/revenue': 'revenue'
+  '/revenue': 'revenue',
+  '/visual-requests': 'visual-requests',
+  '/research-requests': 'research-requests'
 };
 
 // Section-to-route mapping (reverse lookup)
@@ -3419,6 +3697,14 @@ function navigateToRoute(path, pushState = true) {
   // Parse query parameters for crm page
   if (section === 'pipeline') {
     parseCrmQueryParams();
+  }
+  
+  if (section === 'visual-requests') {
+    loadVisualRequests();
+  }
+  
+  if (section === 'research-requests') {
+    loadResearchRequests();
   }
   
   // Handle action item deep linking
@@ -3702,14 +3988,24 @@ function renderCalendar() {
 }
 
 function renderCalCell(date, otherMonth, isToday) {
-  const dateStr = date.toISOString().split('T')[0];
+  const dateStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
   const dayPosts = calPosts.filter(p => p.scheduled_at && p.scheduled_at.startsWith(dateStr));
   const postsHtml = dayPosts.map(p => {
     const time = p.scheduled_at ? new Date(p.scheduled_at).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+    let thumbHtml = '';
+    try {
+      const mediaUrls = JSON.parse(p.media_urls || '[]');
+      const driveUrl = mediaUrls.find(u => u && u.includes('drive.google.com'));
+      if (driveUrl) {
+        const fid = driveUrl.match(/[-\w]{25,}/);
+        if (fid) thumbHtml = `<img src="https://drive.google.com/thumbnail?id=${fid[0]}&sz=w100" style="width:100%;max-height:40px;object-fit:cover;border-radius:4px;margin-top:2px;" onerror="this.style.display='none'">`;
+      }
+    } catch(e) {}
     return `<div class="cal-post platform-${p.platform}" onclick="event.stopPropagation();openPostDetail(${p.id})" title="${p.title}">
       <div class="cal-post-time">${time} · ${platformLabels[p.platform] || p.platform}</div>
       <div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.title}</div>
       <span class="text-xs px-1 rounded post-status-${p.status}" style="font-size:9px;">${postStatusLabels[p.status]}</span>
+      ${thumbHtml}
     </div>`;
   }).join('');
   return `<div class="cal-cell ${otherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}">
@@ -3892,6 +4188,369 @@ async function submitPost(e) {
   else await api('/api/posts', { method: 'POST', body: JSON.stringify(data) });
   closeNewPostModal();
   loadCalendar();
+}
+
+// ═══ Visual Requests ═══
+let vrList = [];
+let vrDetailId = null;
+
+const vrStatusLabels = { pending: '⏳ Pending', in_progress: '🔄 In Progress', changes_requested: '✏️ Changes', done: '✅ Done' };
+const vrStatusColors = { pending: '#eab308', in_progress: '#3b82f6', changes_requested: '#f97316', done: '#22c55e' };
+
+async function loadVisualRequests() {
+  const status = document.getElementById('vr-status-filter')?.value || '';
+  let url = '/api/visual-requests';
+  if (status) url += `?status=${status}`;
+  vrList = await api(url);
+  renderVisualRequests();
+}
+
+function renderVisualRequests() {
+  // Summary cards
+  const counts = { pending: 0, in_progress: 0, changes_requested: 0, done: 0 };
+  vrList.forEach(v => { if (counts[v.status] !== undefined) counts[v.status]++; });
+  document.getElementById('vr-summary').innerHTML = Object.entries(counts).map(([s, c]) => `
+    <div class="card p-3 text-center cursor-pointer" onclick="document.getElementById('vr-status-filter').value='${s}';loadVisualRequests();" style="border-top:2px solid ${vrStatusColors[s]}">
+      <div class="text-lg font-bold" style="color:${vrStatusColors[s]}">${c}</div>
+      <div class="text-xs text-[#64748b]">${vrStatusLabels[s]}</div>
+    </div>`).join('');
+
+  // VR cards
+  if (!vrList.length) {
+    document.getElementById('vr-list').innerHTML = '<div class="text-center text-[#64748b] py-8">No visual requests found</div>';
+    return;
+  }
+  document.getElementById('vr-list').innerHTML = vrList.map(v => {
+    const deadlineStr = v.deadline ? new Date(v.deadline).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : '';
+    const msgCount = v.message_count || 0;
+    return `<div class="vr-card" onclick="openVRDetail(${v.id})">
+      <div class="flex justify-between items-start">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="font-semibold">${v.title}</span>
+            <span class="text-xs px-2 py-0.5 rounded vr-status-${v.status}">${vrStatusLabels[v.status]}</span>
+          </div>
+          <div class="text-xs text-[#64748b]">${v.description ? v.description.substring(0, 120) + (v.description.length > 120 ? '…' : '') : ''}</div>
+          <div class="flex gap-4 mt-2 text-xs text-[#94a3b8]">
+            <span>👤 ${v.requesting_agent || 'Unknown'}</span>
+            ${deadlineStr ? `<span>📅 ${deadlineStr}</span>` : ''}
+            ${msgCount ? `<span>💬 ${msgCount}</span>` : ''}
+            ${v.drive_url ? `<span>📁 Drive</span>` : ''}
+          </div>
+        </div>
+        ${v.drive_url ? `<img src="https://drive.google.com/thumbnail?id=${extractDriveId(v.drive_url)}&sz=w80" style="width:60px;height:60px;object-fit:cover;border-radius:8px;margin-left:12px;" onerror="this.style.display='none'">` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function extractDriveId(url) {
+  if (!url) return '';
+  const m = url.match(/[-\w]{25,}/);
+  return m ? m[0] : '';
+}
+
+async function openVRDetail(id) {
+  vrDetailId = id;
+  const vr = vrList.find(v => v.id === id) || await api(`/api/visual-requests/${id}`);
+  if (!vr) return;
+  const messages = await api(`/api/visual-requests/${id}/messages`);
+  const el = document.getElementById('vr-detail-content');
+
+  const deadlineStr = vr.deadline ? new Date(vr.deadline).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' }) : 'No deadline';
+
+  const msgsHtml = messages.length ? messages.map(m => {
+    const isDavid = m.sender === 'David';
+    const isSystem = m.sender === 'System' || m.message.startsWith('✅') || m.message.startsWith('🔄');
+    const cls = isSystem ? 'system' : isDavid ? 'david' : 'agent';
+    const align = isSystem ? 'justify-center' : isDavid ? 'justify-start' : 'justify-end';
+    return `<div class="flex ${align} mb-3"><div>${!isSystem ? `<div class="text-xs text-[#64748b] mb-1 ${isDavid ? '' : 'text-right'}">${m.sender} · ${timeAgo(m.created_at)}</div>` : ''}<div class="vr-chat-bubble ${cls}">${m.message.replace(/\n/g,'<br>')}</div></div></div>`;
+  }).join('') : '<div class="text-xs text-[#64748b] text-center py-3">No messages yet</div>';
+
+  const canProgress = ['pending', 'changes_requested'].includes(vr.status);
+  const canDone = ['pending', 'in_progress', 'changes_requested'].includes(vr.status);
+  const canChanges = ['in_progress'].includes(vr.status);
+
+  el.innerHTML = `
+    <div class="flex justify-between items-center px-6 py-4 border-b border-[#2d3148]">
+      <div class="flex items-center gap-3">
+        <span class="text-xs px-2 py-0.5 rounded vr-status-${vr.status}">${vrStatusLabels[vr.status]}</span>
+        <h3 class="text-lg font-bold">${vr.title}</h3>
+      </div>
+      <button onclick="closeVRDetail()" class="text-[#94a3b8] hover:text-white text-xl">&times;</button>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-0">
+      <div class="p-6 border-r border-[#2d3148]">
+        <div class="text-xs text-[#94a3b8] mb-2 uppercase tracking-wider font-semibold">Request Details</div>
+        <div class="text-sm mb-4">${vr.description || 'No description'}</div>
+        <div class="grid grid-cols-2 gap-3 text-sm mb-4">
+          <div><span class="text-[#64748b]">Requested by:</span><br><span class="font-medium">${vr.requesting_agent || '—'}</span></div>
+          <div><span class="text-[#64748b]">Deadline:</span><br><span class="font-medium">${deadlineStr}</span></div>
+          <div><span class="text-[#64748b]">Department:</span><br><span class="font-medium">${vr.department || '—'}</span></div>
+          <div><span class="text-[#64748b]">Created:</span><br><span class="font-medium">${timeAgo(vr.created_at)}</span></div>
+        </div>
+        ${vr.reference_specs ? `<div class="text-sm mb-3"><span class="text-[#64748b]">Reference:</span> ${vr.reference_specs}</div>` : ''}
+        ${vr.drive_url ? `<div class="text-sm mb-3"><a href="${vr.drive_url}" target="_blank" class="text-blue-400 hover:underline">📁 View in Google Drive</a></div>
+        <img src="https://drive.google.com/thumbnail?id=${extractDriveId(vr.drive_url)}&sz=w300" style="max-width:100%;border-radius:8px;margin-bottom:12px;" onerror="this.style.display='none'">` : ''}
+        ${vr.associated_post_id ? `<div class="text-sm mb-3"><a href="javascript:void(0)" onclick="closeVRDetail();openPostDetail(${vr.associated_post_id})" class="text-blue-400 hover:underline">📝 Linked Post #${vr.associated_post_id}</a></div>` : ''}
+        <div class="flex gap-2 mt-4 flex-wrap">
+          ${canProgress ? `<button onclick="vrSetStatus(${vr.id},'in_progress')" class="btn-secondary text-xs">🔄 Start Progress</button>` : ''}
+          ${canChanges ? `<button onclick="vrSetStatus(${vr.id},'changes_requested')" class="btn-secondary text-xs" style="border-color:#f97316;color:#f97316;">✏️ Request Changes</button>` : ''}
+          ${canDone ? `<button onclick="openVRDoneModal(${vr.id})" class="btn-primary text-xs">✅ Mark Done</button>` : ''}
+        </div>
+      </div>
+      <div class="p-6 flex flex-col" style="max-height:70vh;">
+        <div class="text-xs text-[#94a3b8] mb-2 uppercase tracking-wider font-semibold">Conversation</div>
+        <div class="flex-1 overflow-y-auto mb-3" id="vr-msgs-${vr.id}" style="max-height:350px;">${msgsHtml}</div>
+        <div class="flex gap-2">
+          <textarea class="action-reply-input" id="vr-reply-${vr.id}" rows="2" placeholder="Type a message..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendVRReply(${vr.id});}"></textarea>
+          <button onclick="sendVRReply(${vr.id})" class="btn-primary text-xs px-4" style="align-self:flex-end;border-radius:10px;">Send</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('vr-detail-modal').classList.remove('hidden');
+  // Scroll chat to bottom
+  setTimeout(() => { const c = document.getElementById(`vr-msgs-${vr.id}`); if (c) c.scrollTop = c.scrollHeight; }, 50);
+}
+
+function closeVRDetail() { document.getElementById('vr-detail-modal').classList.add('hidden'); vrDetailId = null; }
+
+async function sendVRReply(id) {
+  const input = document.getElementById(`vr-reply-${id}`);
+  if (!input || !input.value.trim()) return;
+  const message = input.value.trim();
+  input.value = '';
+  await api(`/api/visual-requests/${id}/messages`, { method: 'POST', body: JSON.stringify({ sender: 'David', message }) });
+  openVRDetail(id);
+}
+
+async function vrSetStatus(id, status) {
+  await api(`/api/visual-requests/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, sender: 'David' }) });
+  loadVisualRequests();
+  openVRDetail(id);
+}
+
+async function openNewVRModal() {
+  // Populate posts dropdown
+  const posts = calPosts.length ? calPosts : await api('/api/posts');
+  const sel = document.getElementById('vr-post-id');
+  sel.innerHTML = '<option value="">— None —</option>' + posts.map(p => `<option value="${p.id}">${p.title} (${p.platform})</option>`).join('');
+  document.getElementById('new-vr-modal').classList.remove('hidden');
+}
+function closeNewVRModal() { document.getElementById('new-vr-modal').classList.add('hidden'); }
+
+async function submitVR(event) {
+  event.preventDefault();
+  const data = {
+    title: document.getElementById('vr-title').value,
+    description: document.getElementById('vr-description').value,
+    requesting_agent: document.getElementById('vr-agent').value,
+    deadline: document.getElementById('vr-deadline').value || null,
+    associated_post_id: document.getElementById('vr-post-id').value ? parseInt(document.getElementById('vr-post-id').value) : null,
+    reference_specs: document.getElementById('vr-ref-specs').value || null,
+    department: document.getElementById('vr-agent').selectedOptions[0]?.text.match(/\((.+)\)/)?.[1] || '',
+    status: 'pending'
+  };
+  await api('/api/visual-requests', { method: 'POST', body: JSON.stringify(data) });
+  closeNewVRModal();
+  // Reset form
+  document.getElementById('vr-title').value = '';
+  document.getElementById('vr-description').value = '';
+  document.getElementById('vr-ref-specs').value = '';
+  document.getElementById('vr-deadline').value = '';
+  loadVisualRequests();
+}
+
+function openVRDoneModal(id) {
+  document.getElementById('vr-done-id').value = id;
+  document.getElementById('vr-done-drive-url').value = '';
+  document.getElementById('vr-done-drive-id').value = '';
+  document.getElementById('vr-done-modal').classList.remove('hidden');
+}
+function closeVRDoneModal() { document.getElementById('vr-done-modal').classList.add('hidden'); }
+
+async function submitVRDone() {
+  const id = document.getElementById('vr-done-id').value;
+  const drive_url = document.getElementById('vr-done-drive-url').value;
+  const drive_file_id = document.getElementById('vr-done-drive-id').value || extractDriveId(drive_url);
+  await api(`/api/visual-requests/${id}/done`, { method: 'PATCH', body: JSON.stringify({ drive_url, drive_file_id }) });
+  closeVRDoneModal();
+  loadVisualRequests();
+  openVRDetail(parseInt(id));
+}
+
+// ═══ Research Requests ═══
+let rrList = [];
+let rrDetailId = null;
+
+const rrStatusLabels = { pending: '⏳ Pending', in_progress: '🔄 In Progress', changes_requested: '✏️ Changes', done: '✅ Done' };
+const rrStatusColors = { pending: '#eab308', in_progress: '#3b82f6', changes_requested: '#f97316', done: '#22c55e' };
+const rrPriorityIcons = { urgent: '🔴', high: '🟡', normal: '⚪' };
+
+async function loadResearchRequests() {
+  const status = document.getElementById('rr-status-filter')?.value || '';
+  let url = '/api/research-requests';
+  if (status) url += `?status=${status}`;
+  rrList = await api(url);
+  renderResearchRequests();
+}
+
+function renderResearchRequests() {
+  const counts = { pending: 0, in_progress: 0, changes_requested: 0, done: 0 };
+  rrList.forEach(v => { if (counts[v.status] !== undefined) counts[v.status]++; });
+  document.getElementById('rr-summary').innerHTML = Object.entries(counts).map(([s, c]) => `
+    <div class="card p-3 text-center cursor-pointer" onclick="document.getElementById('rr-status-filter').value='${s}';loadResearchRequests();" style="border-top:2px solid ${rrStatusColors[s]}">
+      <div class="text-lg font-bold" style="color:${rrStatusColors[s]}">${c}</div>
+      <div class="text-xs text-[#64748b]">${rrStatusLabels[s]}</div>
+    </div>`).join('');
+
+  if (!rrList.length) {
+    document.getElementById('rr-list').innerHTML = '<div class="text-center text-[#64748b] py-8">No research requests found</div>';
+    return;
+  }
+  document.getElementById('rr-list').innerHTML = rrList.map(v => {
+    const deadlineStr = v.deadline ? new Date(v.deadline).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : '';
+    const msgCount = v.message_count || 0;
+    const prioIcon = rrPriorityIcons[v.priority] || '⚪';
+    return `<div class="rr-card" onclick="openRRDetail(${v.id})">
+      <div class="flex justify-between items-start">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="font-semibold">${v.title}</span>
+            <span class="text-xs px-2 py-0.5 rounded rr-status-${v.status}">${rrStatusLabels[v.status]}</span>
+            <span class="text-xs px-2 py-0.5 rounded rr-priority-${v.priority}">${prioIcon} ${v.priority}</span>
+          </div>
+          <div class="text-xs text-[#64748b]">${v.description ? v.description.substring(0, 120) + (v.description.length > 120 ? '…' : '') : ''}</div>
+          <div class="flex gap-4 mt-2 text-xs text-[#94a3b8]">
+            <span>👤 ${v.requesting_agent || 'Unknown'}</span>
+            ${deadlineStr ? `<span>📅 ${deadlineStr}</span>` : ''}
+            ${msgCount ? `<span>💬 ${msgCount}</span>` : ''}
+            ${v.drive_url ? `<span>📁 Drive</span>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function openRRDetail(id) {
+  rrDetailId = id;
+  const rr = rrList.find(v => v.id === id) || await api(`/api/research-requests/${id}`);
+  if (!rr) return;
+  const messages = await api(`/api/research-requests/${id}/messages`);
+  const el = document.getElementById('rr-detail-content');
+  const deadlineStr = rr.deadline ? new Date(rr.deadline).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' }) : 'No deadline';
+  const prioIcon = rrPriorityIcons[rr.priority] || '⚪';
+
+  const msgsHtml = messages.length ? messages.map(m => {
+    const isDavid = m.sender === 'David';
+    const isSystem = m.sender === 'System' || m.message.startsWith('✅') || m.message.startsWith('🔄');
+    const cls = isSystem ? 'system' : isDavid ? 'david' : 'agent';
+    const align = isSystem ? 'justify-center' : isDavid ? 'justify-start' : 'justify-end';
+    return `<div class="flex ${align} mb-3"><div>${!isSystem ? `<div class="text-xs text-[#64748b] mb-1 ${isDavid ? '' : 'text-right'}">${m.sender} · ${timeAgo(m.created_at)}</div>` : ''}<div class="rr-chat-bubble ${cls}">${m.message.replace(/\n/g,'<br>')}</div></div></div>`;
+  }).join('') : '<div class="text-xs text-[#64748b] text-center py-3">No messages yet</div>';
+
+  const canProgress = ['pending', 'changes_requested'].includes(rr.status);
+  const canDone = ['pending', 'in_progress', 'changes_requested'].includes(rr.status);
+  const canChanges = ['in_progress'].includes(rr.status);
+
+  el.innerHTML = `
+    <div class="flex justify-between items-center px-6 py-4 border-b border-[#2d3148]">
+      <div class="flex items-center gap-3">
+        <span class="text-xs px-2 py-0.5 rounded rr-status-${rr.status}">${rrStatusLabels[rr.status]}</span>
+        <span class="text-xs px-2 py-0.5 rounded rr-priority-${rr.priority}">${prioIcon} ${rr.priority}</span>
+        <h3 class="text-lg font-bold">${rr.title}</h3>
+      </div>
+      <button onclick="closeRRDetail()" class="text-[#94a3b8] hover:text-white text-xl">&times;</button>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-0">
+      <div class="p-6 border-r border-[#2d3148]">
+        <div class="text-xs text-[#94a3b8] mb-2 uppercase tracking-wider font-semibold">Research Details</div>
+        <div class="text-sm mb-4">${rr.description || 'No description'}</div>
+        ${rr.context ? `<div class="text-sm mb-4 p-3 rounded" style="background:#1E2235;"><span class="text-[#64748b] text-xs uppercase">Context / Background</span><br><span class="text-[#cbd5e1]">${rr.context}</span></div>` : ''}
+        <div class="grid grid-cols-2 gap-3 text-sm mb-4">
+          <div><span class="text-[#64748b]">Requested by:</span><br><span class="font-medium">${rr.requesting_agent || '—'}</span></div>
+          <div><span class="text-[#64748b]">Deadline:</span><br><span class="font-medium">${deadlineStr}</span></div>
+          <div><span class="text-[#64748b]">Department:</span><br><span class="font-medium">${rr.department || '—'}</span></div>
+          <div><span class="text-[#64748b]">Created:</span><br><span class="font-medium">${timeAgo(rr.created_at)}</span></div>
+        </div>
+        ${rr.drive_url ? `<div class="text-sm mb-3"><a href="${rr.drive_url}" target="_blank" class="text-blue-400 hover:underline">📁 View Research in Google Drive</a></div>` : ''}
+        <div class="flex gap-2 mt-4 flex-wrap">
+          ${canProgress ? `<button onclick="rrSetStatus(${rr.id},'in_progress')" class="btn-secondary text-xs">🔄 Start Research</button>` : ''}
+          ${canChanges ? `<button onclick="rrSetStatus(${rr.id},'changes_requested')" class="btn-secondary text-xs" style="border-color:#f97316;color:#f97316;">✏️ Request Changes</button>` : ''}
+          ${canDone ? `<button onclick="openRRDoneModal(${rr.id})" class="btn-primary text-xs">✅ Mark Done</button>` : ''}
+        </div>
+      </div>
+      <div class="p-6 flex flex-col" style="max-height:70vh;">
+        <div class="text-xs text-[#94a3b8] mb-2 uppercase tracking-wider font-semibold">Conversation</div>
+        <div class="flex-1 overflow-y-auto mb-3" id="rr-msgs-${rr.id}" style="max-height:350px;">${msgsHtml}</div>
+        <div class="flex gap-2">
+          <textarea class="action-reply-input" id="rr-reply-${rr.id}" rows="2" placeholder="Type a message..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendRRReply(${rr.id});}"></textarea>
+          <button onclick="sendRRReply(${rr.id})" class="btn-primary text-xs px-4" style="align-self:flex-end;border-radius:10px;">Send</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('rr-detail-modal').classList.remove('hidden');
+  setTimeout(() => { const c = document.getElementById(`rr-msgs-${rr.id}`); if (c) c.scrollTop = c.scrollHeight; }, 50);
+}
+
+function closeRRDetail() { document.getElementById('rr-detail-modal').classList.add('hidden'); rrDetailId = null; }
+
+async function sendRRReply(id) {
+  const input = document.getElementById(`rr-reply-${id}`);
+  if (!input || !input.value.trim()) return;
+  const message = input.value.trim();
+  input.value = '';
+  await api(`/api/research-requests/${id}/messages`, { method: 'POST', body: JSON.stringify({ sender: 'David', message }) });
+  openRRDetail(id);
+}
+
+async function rrSetStatus(id, status) {
+  await api(`/api/research-requests/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, sender: 'David' }) });
+  loadResearchRequests();
+  openRRDetail(id);
+}
+
+function openNewRRModal() { document.getElementById('new-rr-modal').classList.remove('hidden'); }
+function closeNewRRModal() { document.getElementById('new-rr-modal').classList.add('hidden'); }
+
+async function submitRR(event) {
+  event.preventDefault();
+  const data = {
+    title: document.getElementById('rr-title').value,
+    description: document.getElementById('rr-description').value,
+    context: document.getElementById('rr-context').value || '',
+    requesting_agent: document.getElementById('rr-agent').value,
+    priority: document.getElementById('rr-priority').value || 'normal',
+    deadline: document.getElementById('rr-deadline').value || null,
+    department: document.getElementById('rr-agent').selectedOptions[0]?.text.match(/\((.+)\)/)?.[1] || '',
+    status: 'pending'
+  };
+  await api('/api/research-requests', { method: 'POST', body: JSON.stringify(data) });
+  closeNewRRModal();
+  document.getElementById('rr-title').value = '';
+  document.getElementById('rr-description').value = '';
+  document.getElementById('rr-context').value = '';
+  document.getElementById('rr-deadline').value = '';
+  loadResearchRequests();
+}
+
+function openRRDoneModal(id) {
+  document.getElementById('rr-done-id').value = id;
+  document.getElementById('rr-done-drive-url').value = '';
+  document.getElementById('rr-done-drive-id').value = '';
+  document.getElementById('rr-done-modal').classList.remove('hidden');
+}
+function closeRRDoneModal() { document.getElementById('rr-done-modal').classList.add('hidden'); }
+
+async function submitRRDone() {
+  const id = document.getElementById('rr-done-id').value;
+  const drive_url = document.getElementById('rr-done-drive-url').value;
+  const drive_file_id = document.getElementById('rr-done-drive-id').value || extractDriveId(drive_url);
+  await api(`/api/research-requests/${id}/done`, { method: 'PATCH', body: JSON.stringify({ drive_url, drive_file_id }) });
+  closeRRDoneModal();
+  loadResearchRequests();
+  openRRDetail(parseInt(id));
 }
 
 // ═══ Vendors ═══
