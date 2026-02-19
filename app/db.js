@@ -695,6 +695,19 @@ const stmts = {
   updateTokenUsage: db.prepare(`UPDATE token_usage SET input_tokens=@input_tokens, output_tokens=@output_tokens, total_tokens=@total_tokens, cost_usd=@cost_usd, provider=@provider, model=@model, task_type=@task_type WHERE id=@id`),
   getTokenUsageSummary: db.prepare(`SELECT agent_id, SUM(input_tokens) as total_input, SUM(output_tokens) as total_output, SUM(cost_usd) as total_cost FROM token_usage GROUP BY agent_id`),
   getDailyTokenUsage: db.prepare(`SELECT date, SUM(input_tokens) as total_input, SUM(output_tokens) as total_output, SUM(cost_usd) as total_cost FROM token_usage GROUP BY date ORDER BY date DESC`),
+  // Provider-aggregated token usage (for US-003)
+  getTokenUsageByProvider: db.prepare(`SELECT 
+    provider,
+    SUM(input_tokens) as total_input_tokens,
+    SUM(output_tokens) as total_output_tokens,
+    SUM(total_tokens) as total_tokens,
+    SUM(cost_usd) as total_cost_usd
+    FROM token_usage
+    WHERE (? IS NULL OR agent_id = ?)
+    AND (? IS NULL OR date >= ?)
+    AND (? IS NULL OR date <= ?)
+    GROUP BY provider
+    ORDER BY total_cost_usd DESC`),
 };
 
 function logActivity(type, entityType, entityId, message, actor = 'system') {

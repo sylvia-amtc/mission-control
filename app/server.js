@@ -1410,6 +1410,47 @@ app.post('/api/org/agents/:id/token-usage', (req, res) => {
   res.status(201).json({ id: result.lastInsertRowid, agent_id: agentId, ...tu });
 });
 
+// GET /api/org/token-usage/by-provider - Get token usage aggregated by provider (US-003)
+app.get('/api/org/token-usage/by-provider', (req, res) => {
+  const { start_date, end_date, agent_id } = req.query;
+  
+  // Get provider-aggregated data from database
+  const providerData = stmts.getTokenUsageByProvider.all(
+    agent_id || null, agent_id || null,
+    start_date || null, start_date || null,
+    end_date || null, end_date || null
+  );
+  
+  // Calculate total for percentage calculations
+  const totalCost = providerData.reduce((sum, p) => sum + (p.total_cost_usd || 0), 0);
+  
+  // Default token limits by provider (in USD) - could be moved to config
+  const PROVIDER_LIMITS = {
+    'anthropic': 50000,    // Claude API limit
+    'openai': 50000,       // OpenAI API limit
+    'google': 50000,      // Google AI API limit
+    'groq': 10000,         // Groq API limit
+  };
+  
+  // Format response with usage percentage
+  const response = providerData.map(p => {
+    const providerKey = p.provider?.toLowerCase() || 'unknown';
+    const limit = PROVIDER_LIMITS[providerKey] || 10000; // default limit
+    
+    return {
+      provider: p.provider || 'unknown',
+      total_input_tokens: p.total_input_tokens || 0,
+      total_output_tokens: p.total_output_tokens || 0,
+      total_tokens: p.total_tokens || 0,
+      total_cost_usd: p.total_cost_usd || 0,
+      limit: limit,
+      usage_percentage: limit > 0 ? Math.round((p.total_cost_usd / limit) * 10000) / 100 : 0,
+    };
+  });
+  
+  res.json(response);
+});
+
 // ─── Fleet Management API ───────────────────────────────────────
 app.get('/api/config/models', (req, res) => {
   // Hardcoded list as requested
