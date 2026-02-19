@@ -3415,9 +3415,8 @@ function renderOrgSummary() {
   const active = orgAgents.filter(a => a.status === 'active').length;
   const sleeping = orgAgents.length - active;
   
-  // Provider usage stats from token usage API
-  const providerCosts = {};
-  const limits = { 'Anthropic': 50000, 'Google': 50000, 'OpenAI': 50000, 'Groq': 10000, 'unknown': 10000 };
+  // Default limits (fallback if API doesn't provide them)
+  const defaultLimits = { 'Anthropic': 50000, 'Google': 50000, 'OpenAI': 50000, 'Groq': 10000, 'unknown': 10000 };
   
   // Map API provider names to display names
   const providerMap = {
@@ -3428,31 +3427,69 @@ function renderOrgSummary() {
   };
   
   // Process token usage data from API
+  // Stores: { provider: { inputTokens, outputTokens, totalTokens, cost, limit, percentage } }
+  const providerData = {};
+  
   if (orgTokenUsage && orgTokenUsage.length > 0) {
+    // Use real token usage data from API
     orgTokenUsage.forEach(u => {
       const displayName = providerMap[u.provider?.toLowerCase()] || u.provider || 'unknown';
-      providerCosts[displayName] = u.total_cost_usd || 0;
+      providerData[displayName] = {
+        inputTokens: u.total_input_tokens || 0,
+        outputTokens: u.total_output_tokens || 0,
+        totalTokens: u.total_tokens || 0,
+        cost: u.total_cost_usd || 0,
+        limit: u.limit || defaultLimits[displayName] || 10000,
+        percentage: u.usage_percentage || 0
+      };
     });
   }
+  
+  // Check if we have token data (for fallback logic)
+  const hasTokenData = Object.keys(providerData).length > 0;
+  
+  // Format number with K/M suffixes
+  function fmtNum(n) {
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+    return n.toString();
+  }
+  
+  // Format currency
+  function fmtCost(c) {
+    if (c >= 1000) return '$' + (c / 1000).toFixed(1) + 'k';
+    return '$' + c.toFixed(0);
+  }
 
-  const provHtml = Object.entries(providerCosts).map(([p, cost]) => {
-    const limit = limits[p] || 10000;
-    const pct = Math.min(100, (cost / limit) * 100);
+  // Generate provider usage HTML
+  const provHtml = Object.entries(providerData).map(([p, data]) => {
+    const pct = Math.min(100, data.percentage || ((data.cost / data.limit) * 100));
     const color = pct >= 100 ? '#ef4444' : pct >= 80 ? '#eab308' : '#3b82f6';
-    const costDisplay = cost >= 1000 ? `$${(cost/1000).toFixed(1)}k` : `$${cost.toFixed(0)}`;
-    const limitDisplay = limit >= 1000 ? `$${(limit/1000).toFixed(0)}k` : `$${limit}`;
+    const limitDisplay = data.limit >= 1000 ? '$' + (data.limit / 1000).toFixed(0) + 'k' : '$' + data.limit;
+    
     return `
-      <div class="flex-1 min-w-[120px]">
-        <div class="flex justify-between text-[10px] uppercase text-[#64748b] mb-1 font-semibold">
-          <span>${p}</span>
-          <span>${costDisplay}/${limitDisplay}</span>
+      <div class="flex-1 min-w-[160px] p-2 rounded-lg bg-[#0f172a] border border-[#1e293b]">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-xs font-semibold text-[#e2e8f0]">${p}</span>
+          <span class="text-[10px] text-[#64748b]">${pct.toFixed(1)}%</span>
         </div>
-        <div class="h-1.5 bg-[#0f172a] rounded-full overflow-hidden">
+        <div class="h-1.5 bg-[#1e293b] rounded-full overflow-hidden mb-2">
           <div class="h-full rounded-full transition-all duration-500" style="width:${pct}%; background:${color}"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px]">
+          <div><span class="text-[#64748b]">In:</span> <span class="text-[#94a3b8]">${fmtNum(data.inputTokens)}</span></div>
+          <div><span class="text-[#64748b]">Out:</span> <span class="text-[#94a3b8]">${fmtNum(data.outputTokens)}</span></div>
+          <div><span class="text-[#64748b]">Cost:</span> <span class="text-[#22c55e]">${fmtCost(data.cost)}</span></div>
+          <div><span class="text-[#64748b]">Limit:</span> <span class="text-[#94a3b8]">${limitDisplay}</span></div>
         </div>
       </div>
     `;
   }).join('');
+
+  // Show token usage section if we have data, otherwise show message
+  const tokenUsageSection = hasTokenData 
+    ? provHtml 
+    : `<div class="text-xs text-[#64748b] italic">No token usage data available</div>`;
 
   document.getElementById('org-summary').innerHTML = `
     <div class="flex justify-between items-center w-full mb-4">
@@ -3462,8 +3499,8 @@ function renderOrgSummary() {
         <div class="org-summary-stat"><div class="num" style="color:#64748b">${sleeping}</div><div class="lbl">Sleeping</div></div>
       </div>
       <div class="flex gap-4 items-center">
-        <div class="flex gap-3 bg-[#1e293b] p-2 rounded-lg border border-[#334155] mr-4">
-          ${provHtml}
+        <div class="flex gap-2 bg-[#1e293b] p-2 rounded-lg border border-[#334155] mr-4 overflow-x-auto">
+          ${tokenUsageSection}
         </div>
         <button onclick="toggleFleetMode()" class="btn-secondary text-xs px-3 py-1.5 ${fleetMode ? 'bg-blue-900/50 border-blue-500 text-blue-200' : ''}">
           🛠️ Manage Fleet
