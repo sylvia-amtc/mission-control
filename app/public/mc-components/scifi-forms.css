@@ -1,0 +1,373 @@
+/* ═══ MC Sci-Fi Theme: Forms ═══ */
+/* Form components - import after tokens.css */
+
+/* ─────────────────────────────────────────
+   Input
+   ───────────────────────────────────────── */
+.form-input {
+  width: 100%;
+  background: rgba(15, 17, 23, 0.8);
+  border: 1px solid var(--mc-border-default);
+  border-radius: var(--mc-radius-md);
+  padding: var(--mc-space-3) var(--mc-space-4);
+  font-family: var(--mc-font-sans);
+  font-size: var(--mc-text-sm);
+  color: var(--mc-text-primary);
+  transition: all var(--mc-transition-base);
+  backdrop-filter: blur(4px);
+}
+
+.form-input::placeholder {
+  color: var(--mc-text-muted);
+}
+
+.form-input:hover:not(:disabled) {
+  border-color: var(--mc-border-strong);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--mc-accent-cyan);
+  box-shadow: 
+    0 0 0 3px rgba(6, 182, 212, 0.1),
+    0 0 20px rgba(6, 182, 212, 0.15);
+  background: rgba(15, 17, 23, 0.95);
+}
+
+.form-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.form-input-error {
+  border-color: var(--mc-accent-red);
+}
+
+.form-input-error:focus {
+  box-shadow: 
+    0 0 0 3px rgba(239, 68, 68, 0.1),
+    0 0 20px rgba(239, 68, 68, 0.15);
+}
+
+/* ─────────────────────────────────────────
+   Input Sizes
+   ───────────────────────────────────────── */
+.form-input-sm {
+  padding: var(--mc-space-2) var(--mc-space-3);
+  font-size: var(--mc-text-xs);
+}
+
+.form-input-lg {
+  padding: var(--mc-space-4) var(--mc-space-5);
+  font-size: var(--mc-text-base);
+}
+
+/* ─────────────────────────────────────────
+   Input Group
+   ───────────────────────────────────────── */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mc-space-2);
+}
+
+.input-label {
+  font-size: var(--mc-text-sm);
+  font-weight: 500;
+  color: var(--mc-text-secondary);
+}
+
+.input-hint {
+  font-size: var(--mc-text-xs);
+  color: var(--mc-text-muted);
+}
+
+.input-error-message {
+  font-size: var(--mc-text-xs);
+  color: var(--mc-accent-red);
+}
+
+/* Input with icon */
+.input-icon-wrapper {
+  position: relative;
+}
+
+.input-icon-wrapper .form-input {
+  padding-left: 40px;
+}
+
+.input-icon-wrapper .input-icon {
+  position: absolute;
+  left: var(--mc-space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--mc-text-muted);
+  pointer-events: none;
+}
+
+/* Input with addon */
+.input-addon-wrapper {
+  display: flex;
+}
+
+.input-addon-wrapper .form-input {
+  flex: 1;
+  border-radius: 0;
+}
+
+.input-addon-wrapper .form-input:first-child {
+  border-radius: var(--mc-radius-md) 0 0 var(--mc-radius-md);
+}
+
+.input-addon-wrapper .form-input:last-child {
+  border-radius: 0 var(--mc-radius-md) var(--mc-radius-md) 0;
+}
+
+.input-addon {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--mc-space-3);
+  background: var(--mc-bg-tertiary);
+  border: 1px solid var(--mc-border-default);
+  color: var(--mc-text-secondary);
+  font-size: var(--mc-text-sm);
+}
+
+.input-addon:first-child {
+  border-radius: var(--mc-radius-md) 0 0 var(--mc-radius-md);
+  border-right: none;
+}
+
+.input-addon:last-child {
+  border-radius: 0 var(--mc-radius-md) var(--mc-radius-md) 0;
+  border-left: none;
+}
+
+/* ─────────────────────────────────────────
+   Textarea
+   ───────────────────────────────────────── */
+.form-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* ─────────────────────────────────────────
+   Select
+   ───────────────────────────────────────── */
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--mc-space-3) center;
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+.form-select option {
+  background: var(--mc-bg-secondary);
+  color: var(--mc-text-primary);
+}
+
+/* ─────────────────────────────────────────
+   Checkbox
+   ───────────────────────────────────────── */
+.checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--mc-space-3);
+  cursor: pointer;
+}
+
+.form-checkbox {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--mc-border-default);
+  border-radius: var(--mc-radius-sm);
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--mc-transition-fast);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.checkbox-wrapper:hover .form-checkbox {
+  border-color: var(--mc-accent-cyan);
+}
+
+.form-checkbox:checked {
+  background: linear-gradient(135deg, var(--mc-accent-cyan), var(--mc-accent-blue));
+  border-color: var(--mc-accent-cyan);
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+}
+
+.form-checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.form-checkbox:focus-visible {
+  box-shadow: 
+    0 0 0 2px var(--mc-bg-primary),
+    0 0 0 4px var(--mc-accent-cyan);
+}
+
+.checkbox-label {
+  font-size: var(--mc-text-sm);
+  color: var(--mc-text-secondary);
+}
+
+/* ─────────────────────────────────────────
+   Radio
+   ───────────────────────────────────────── */
+.radio-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--mc-space-3);
+  cursor: pointer;
+}
+
+.form-radio {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--mc-border-default);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--mc-transition-fast);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.radio-wrapper:hover .form-radio {
+  border-color: var(--mc-accent-cyan);
+}
+
+.form-radio:checked {
+  border-color: var(--mc-accent-cyan);
+}
+
+.form-radio:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--mc-accent-cyan);
+  box-shadow: 0 0 8px var(--mc-accent-cyan);
+}
+
+/* ─────────────────────────────────────────
+   Toggle Switch
+   ───────────────────────────────────────── */
+.toggle-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--mc-space-3);
+  cursor: pointer;
+}
+
+.form-toggle {
+  appearance: none;
+  width: 44px;
+  height: 24px;
+  background: var(--mc-bg-tertiary);
+  border: 1px solid var(--mc-border-default);
+  border-radius: var(--mc-radius-full);
+  cursor: pointer;
+  position: relative;
+  transition: all var(--mc-transition-base);
+}
+
+.form-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: var(--mc-text-secondary);
+  border-radius: 50%;
+  transition: all var(--mc-transition-base);
+}
+
+.form-toggle:checked {
+  background: linear-gradient(135deg, var(--mc-accent-cyan), var(--mc-accent-blue));
+  border-color: var(--mc-accent-cyan);
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
+}
+
+.form-toggle:checked::after {
+  left: 22px;
+  background: white;
+}
+
+.toggle-label {
+  font-size: var(--mc-text-sm);
+  color: var(--mc-text-secondary);
+}
+
+/* ─────────────────────────────────────────
+   Form Fieldset
+   ───────────────────────────────────────── */
+.form-fieldset {
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-md);
+  padding: var(--mc-space-4);
+}
+
+.form-legend {
+  font-size: var(--mc-text-sm);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  padding: 0 var(--mc-space-2);
+}
+
+/* ─────────────────────────────────────────
+   Search Bar
+   ───────────────────────────────────────── */
+.search-bar {
+  position: relative;
+  max-width: 400px;
+}
+
+.search-bar .form-input {
+  width: 100%;
+  padding-left: var(--mc-space-10);
+}
+
+.search-bar .search-icon {
+  position: absolute;
+  left: var(--mc-space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--mc-text-muted);
+}
+
+.search-bar .search-clear {
+  position: absolute;
+  right: var(--mc-space-2);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: var(--mc-space-1);
+  background: transparent;
+  border: none;
+  color: var(--mc-text-muted);
+  cursor: pointer;
+  border-radius: var(--mc-radius-sm);
+}
+
+.search-bar .search-clear:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--mc-text-primary);
+}

@@ -1,144 +1,302 @@
-# Amtecco Mission Control
+# Mission Control
 
-**Purpose:** COO operational dashboard and CEO single pane of glass
+<p align="center">
+  <img src="https://img.shields.io/badge/Version-1.0.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
+  <img src="https://img.shields.io/badge/Stack-Node.js%20%2B%20SQLite-orange" alt="Stack">
+</p>
 
-**Owner:** Sylvia (COO)
-
-**Audience:** Sylvia (operational command), David (CEO, executive overview)
-
----
-
-## Quick Start
-
-### For Sylvia (COO)
-- **Main dashboard:** `dashboard.md` — org status, KPI overview, blockers
-- **Department KPIs:** `kpis/<department>.md` — detailed metrics per department
-- **Weekly report:** `reports/weekly-YYYY-MM-DD.md` — generate from template
-- **Report to CEO:** `reports/executive-summary-YYYY-MM-DD.md` — high-level for David
-
-### For David (CEO)
-- **Read this:** `dashboard.md` — at-a-glance org health
-- **Weekly briefing:** `reports/executive-summary-YYYY-MM-DD.md` — delivered weekly by Sylvia
-
-### For Department VPs
-- **Update your KPIs:** `kpis/<department>.md` — weekly updates before reporting deadline
-- **Flag blockers:** `blockers.md` — escalate issues immediately
+Mission Control is an AI-powered operational command center for managing an organization's workflows, KPIs, tasks, and cross-department coordination. It provides a unified dashboard and API for tracking action items, CRM deals, social media posts, vendor management, and more — all accessible via both a web interface and an MCP (Model Context Protocol) server for AI agent integration.
 
 ---
 
-## File Structure
+## Table of Contents
+
+- [What is Mission Control?](#what-is-mission-control)
+- [The MCP Server](#the-mcp-server)
+- [Technical Architecture](#technical-architecture)
+- [Getting Started](#getting-started)
+- [API Reference](#api-reference)
+- [MCP Tools Reference](#mcp-tools-reference)
+- [Database Schema](#database-schema)
+
+---
+
+## What is Mission Control?
+
+Mission Control serves as the central nervous system for organizational operations. It consolidates multiple operational workflows into a single source of truth:
+
+### Core Features
+
+| Feature | Description |
+|---------|-------------|
+| **Action Items** | Track cross-functional tasks with severity levels (red/yellow/blue), ownership, and threading |
+| **Task Management** | Kanban-style task board with departments, priorities, and blocker tracking |
+| **KPI Tracking** | Department-level KPI snapshots with targets, current values, and trend analysis |
+| **CRM Pipeline** | Sales pipeline management from lead to close with deal values and stages |
+| **Social Media** | Plan, schedule, and track social media posts across X, LinkedIn Company, and LinkedIn Personal |
+| **Vendor Management** | Track vendor subscriptions, costs, renewal dates, and department assignments |
+| **Research Requests** | Manage research tasks with priority levels and deliverable tracking |
+| **Visual Requests** | Design task management linked to social media posts |
+| **Organization Tree** | Agent/department hierarchy with status tracking |
+
+### Use Cases
+
+- **COO Dashboard**: Real-time org status, KPI summaries, blockers, and reporting
+- **AI Agent Integration**: LLMs can query and manipulate data via the MCP server
+- **Cross-Department Coordination**: Single source for VPs to track department health
+- **Weekly Reporting**: Templates for executive summaries and operational reports
+
+---
+
+## The MCP Server
+
+The Mission Control MCP (Model Context Protocol) server exposes all Mission Control data and functionality to AI agents. This enables AI systems to:
+
+1. **Query** organizational data (actions, tasks, KPIs, deals, posts, vendors)
+2. **Create** new records (deals, tasks, action items, posts)
+3. **Update** existing records with full CRUD operations
+4. **Trigger** synchronizations with external systems (Twenty CRM, etc.)
+
+### How It Works
+
+```
+┌─────────────────┐      SSE (port 3001)       ┌──────────────────┐
+│   AI Agent      │ ◄─────────────────────────► │  MCP Server      │
+│ (Claude, etc.)  │                            │  (Node.js)        │
+└─────────────────┘                            └────────┬─────────┘
+                                                         │
+                                                         │ SQL
+                                                         ▼
+                                                  ┌──────────────┐
+                                                  │   SQLite DB   │
+                                                  └──────────────┘
+```
+
+### Transport Options
+
+| Mode | Command | Description |
+|------|---------|-------------|
+| **SSE** | `node mcp-server.js` | Server-Sent Events on port 3001 (default) |
+| **stdio** | `node mcp-server.js --stdio` | Standard I/O for local integration |
+
+### Endpoints
+
+- **SSE**: `http://localhost:3001/sse`
+- **Messages**: `http://localhost:3001/messages`
+- **Health**: `http://localhost:3001/health`
+
+---
+
+## Technical Architecture
+
+### Stack
+
+| Component | Technology |
+|-----------|------------|
+| **Runtime** | Node.js 22+ |
+| **Web Server** | Express.js 5.x |
+| **Database** | SQLite 3 (better-sqlite3) with WAL mode |
+| **Protocol** | Model Context Protocol (MCP) SDK |
+| **Templating** | Marked (Markdown rendering) |
+| **Real-time** | WebSockets (ws) |
+
+### Project Structure
 
 ```
 mission-control/
-├── README.md                          # This file
-├── dashboard.md                       # Main dashboard (org status, KPI summary)
-├── org-structure.md                   # Org chart, roles, reporting lines
-├── blockers.md                        # Active blockers and risks tracker
-├── reporting-schedule.md              # What's due from whom and when
-├── kpis/                              # Department KPI tracking
-│   ├── research-intelligence.md       # R&I KPIs (Nadia)
-│   ├── marketing-content.md           # Marketing KPIs (Max)
-│   ├── sales-business-dev.md          # Sales KPIs (Elena)
-│   └── engineering-product.md         # Engineering KPIs (Viktor)
-├── reports/                           # Generated reports
-│   ├── weekly-report-template.md      # Template for COO weekly ops report
-│   ├── executive-summary-template.md  # Template for CEO weekly briefing
-│   └── [dated reports go here]        # weekly-2026-02-16.md, etc.
-└── archive/                           # Old reports and historical data
+├── app/
+│   ├── db.js            # Database schema & migrations
+│   ├── server.js        # Express REST API server (port 3000)
+│   ├── mcp-server.js    # MCP server (port 3001)
+│   ├── scheduler.js    # Sync jobs & scheduled tasks
+│   ├── sync.js         # External system sync (Twenty CRM)
+│   ├── package.json    # Node dependencies
+│   └── public/         # Static assets & web UI
+├── kpis/               # Department KPI definitions
+├── reports/            # Report templates & generated reports
+├── infrastructure/     # Infrastructure configs (tunnels, etc.)
+├── scripts/           # Utility scripts
+├── dashboard.md       # Main operational dashboard
+├── blockers.md        # Active blockers tracker
+└── org-structure.md  # Organization hierarchy
+```
+
+### API Servers
+
+| Server | Port | Purpose |
+|--------|------|---------|
+| **REST API** | 3000 | Web UI, CRUD operations |
+| **MCP Server** | 3001 | AI agent integration (SSE) |
+
+### Database Schema
+
+The SQLite database contains these core tables:
+
+- `tasks` - Kanban task board
+- `action_items` - Cross-functional action tracking
+- `kpi_snapshots` - KPI time-series data
+- `crm_pipeline` - Deals and pipeline stages
+- `posts` - Social media content calendar
+- `vendors` - Vendor subscription management
+- `milestones` - Project milestones
+- `research_requests` - Research task tracking
+- `visual_requests` - Design task management
+- `sync_status` - External sync timestamps
+- `activity_log` - Audit trail
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 22.x or higher
+- npm or yarn
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/sylvia-amtc/mission-control.git
+cd mission-control/app
+
+# Install dependencies
+npm install
+
+# Start the REST API server (port 3000)
+node server.js
+
+# In another terminal, start the MCP server (port 3001)
+node mcp-server.js
+```
+
+### Quick Start with PM2
+
+```bash
+# Install PM2 globally
+npm install -g pm2
+
+# Start both servers with PM2
+pm2 start ecosystem.config.js
+
+# View status
+pm2 status
+
+# View logs
+pm2 logs
+```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | 3000 | REST API server port |
+| `MCP_PORT` | 3001 | MCP server port |
+| `DB_PATH` | `../mission-control.db` | SQLite database path |
+
+### Health Checks
+
+```bash
+# REST API
+curl http://localhost:3000/health
+
+# MCP Server
+curl http://localhost:3001/health
 ```
 
 ---
 
-## Workflow
+## API Reference
 
-### Weekly Reporting Cycle (Example: Reports Due Monday)
+### REST API Base URL
 
-**Thursday:**
-- VPs update their department KPIs (`kpis/<department>.md`)
-- VPs flag any new blockers in `blockers.md`
+```
+http://localhost:3000/api
+```
 
-**Friday:**
-- Sylvia reviews all KPI updates
-- Sylvia drafts weekly ops report (`reports/weekly-YYYY-MM-DD.md`)
-- Sylvia drafts CEO executive summary (`reports/executive-summary-YYYY-MM-DD.md`)
+### Core Endpoints
 
-**Monday Morning:**
-- Sylvia delivers CEO executive summary to David
-- Sylvia posts weekly ops report (shared with VPs)
-
-**Anytime:**
-- Critical blockers flagged immediately in `blockers.md`
-- Dashboard updated as org status changes
-
----
-
-## Dashboard Views
-
-### 1. Operational View (Sylvia)
-**File:** `dashboard.md`
-
-- Org status (all departments, agent deployment, health)
-- KPI summary (all departments, targets vs. current)
-- Active blockers and risks
-- Top priorities
-- Reporting status (what's due, what's late)
-
-### 2. Executive View (David)
-**File:** `reports/executive-summary-YYYY-MM-DD.md` (weekly)
-
-- Company health at-a-glance
-- Key wins this week
-- Critical blockers
-- Key metrics trend (revenue indicators, product health, operational efficiency)
-- Next week's focus
-
-### 3. Department View (VPs)
-**Files:** `kpis/<department>.md`
-
-- Detailed KPI tracking for their department
-- Historical trends
-- Blocker escalation
-- Next sprint priorities
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/actions` | List action items |
+| POST | `/api/actions` | Create action item |
+| GET | `/api/tasks` | List tasks (Kanban) |
+| POST | `/api/tasks` | Create task |
+| GET | `/api/kpis` | Get current KPIs |
+| POST | `/api/kpis/push` | Push KPI update |
+| GET | `/api/crm/deals` | List CRM deals |
+| POST | `/api/crm/deals` | Create deal |
+| GET | `/api/posts` | List social posts |
+| POST | `/api/posts` | Create post |
+| GET | `/api/vendors` | List vendors |
+| POST | `/api/vendors` | Create vendor |
+| GET | `/api/org` | Organization tree |
+| GET | `/api/visual-requests` | List visual requests |
+| GET | `/api/research-requests` | List research requests |
 
 ---
 
-## Updating the Dashboard
+## MCP Tools Reference
 
-### Sylvia (COO)
-- Update `dashboard.md` daily or as significant changes occur
-- Review `blockers.md` daily
-- Generate weekly reports (Friday)
+The MCP server exposes these tool categories:
 
-### Department VPs
-- Update `kpis/<department>.md` weekly (Thursday EOD)
-- Add blockers to `blockers.md` immediately when they arise
-- Update org status if team structure changes
+### Read Tools (Query Data)
 
-### David (CEO)
-- Read `dashboard.md` anytime for current state
-- Receive `reports/executive-summary-YYYY-MM-DD.md` weekly (Monday)
+| Tool | Description |
+|------|-------------|
+| `list_actions` | List action items with filters |
+| `get_action` | Get single action by ID |
+| `list_tasks` | List tasks with filters |
+| `list_kpis` | Get current KPI snapshots |
+| `list_deals` | List CRM deals |
+| `list_posts` | List social media posts |
+| `vendor_list` | List vendors |
+| `dashboard_summary` | High-level org overview |
+| `crm_pipeline_summary` | Pipeline stats |
+| `get_department` | Department detail |
+| `list_agents` | List all agents |
+| `get_sync_status` | External sync status |
+
+### Write Tools (Mutate Data)
+
+| Tool | Description |
+|------|-------------|
+| `create_action` | Create action item |
+| `update_action` | Update action |
+| `resolve_action` | Resolve action |
+| `create_task` | Create task |
+| `update_task` | Update task |
+| `move_task` | Change task status |
+| `create_post` | Create social post |
+| `approve_post` | Approve post |
+| `create_deal` | Create CRM deal |
+| `move_deal_stage` | Move deal stage |
+| `vendor_create` | Create vendor |
+| `vendor_update` | Update vendor |
+| `wake_agent` | Wake an agent |
+| `trigger_sync` | Trigger full sync |
+
+### Example MCP Query
+
+```json
+{
+  "tool": "list_actions",
+  "arguments": {
+    "status": "open",
+    "severity": "red"
+  }
+}
+```
 
 ---
 
-## Principles
+## License
 
-1. **Single source of truth:** Mission Control is the canonical org status
-2. **Update cadence:** Weekly for KPIs, immediate for blockers
-3. **Simplicity:** Markdown-based, human-readable, version-controlled
-4. **Escalation:** Critical issues flagged in `blockers.md` immediately
-5. **Transparency:** All VPs can see all department status (cross-functional visibility)
+MIT License - See LICENSE file for details.
 
 ---
 
-## Future Enhancements
+## Credits
 
-- Automated KPI aggregation (pull from source systems)
-- Dashboard web view (render markdown as HTML)
-- Slack/Telegram integration (push notifications for blockers)
-- Historical trend visualization (charts from KPI data)
-
-For now: markdown files, manual updates, clear structure.
-
----
-
-**Questions?** Ask Viktor (built this system) or Sylvia (owns it).
+Built for Amtecco B.V. — AI-powered operational command for modern organizations.

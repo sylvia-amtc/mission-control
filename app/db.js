@@ -576,6 +576,7 @@ const stmts = {
   getAllTasks: db.prepare('SELECT * FROM tasks ORDER BY position, created_at'),
   getTasksByStatus: db.prepare('SELECT * FROM tasks WHERE status = ? ORDER BY position, created_at'),
   getTasksByDept: db.prepare('SELECT * FROM tasks WHERE department = ? ORDER BY position, created_at'),
+  getBlockers: db.prepare("SELECT * FROM tasks WHERE is_blocker = 1 AND status != 'done' ORDER BY priority, created_at"),
   getTask: db.prepare('SELECT * FROM tasks WHERE id = ?'),
   insertTask: db.prepare(`INSERT INTO tasks (title, description, department, owner, priority, status, due_date, depends_on, is_blocker, blocker_note, milestone, position, start_date, end_date, progress, is_milestone) 
     VALUES (@title, @description, @department, @owner, @priority, @status, @due_date, @depends_on, @is_blocker, @blocker_note, @milestone, @position, @start_date, @end_date, @progress, @is_milestone)`),
@@ -753,4 +754,74 @@ function logActivity(type, entityType, entityId, message, actor = 'system') {
   stmts.insertActivity.run({ type, entity_type: entityType, entity_id: entityId, message, actor });
 }
 
-module.exports = { db, stmts, logActivity };
+// Sync agent_status.last_active_at from agent_activity table
+function syncAgentActivityToStatus() {
+  const agents = db.prepare(`
+    SELECT agent_id, MAX(started_at) as latest_activity 
+    FROM agent_activity 
+    GROUP BY agent_id
+  `).all();
+  
+  const now = new Date().toISOString();
+  for (const agent of agents) {
+    if (agent.latest_activity) {
+      db.prepare(`
+        UPDATE agent_status 
+        SET last_active_at = ?, updated_at = datetime('now')
+        WHERE agent_id = ?
+      `).run(agent.latest_activity, agent.agent_id);
+    }
+  }
+  logActivity('sync', 'agent', null, `Synced last_active_at for ${agents.length} agents from agent_activity`);
+  return agents.length;
+}
+
+// Sync agent_status.last_active_at directly from OpenClaw session files
+function syncFromOpenClawSessions() {
+  const fs = require('fs');
+  const path = require('path');
+  const agentsDir = '/root/.openclaw/agents';
+  const updated = [];
+  
+  // Get all agents from agent_status
+  const agents = stmts.getAllAgents.all();
+  
+  for (const agent of agents) {
+    const sessionsPath = path.join(agentsDir, agent.agent_id, 'sessions', 'sessions.json');
+    try {
+      if (fs.existsSync(sessionsPath)) {
+        const sessionsData = JSON.parse(fs.readFileSync(sessionsPath, 'utf8'));
+        let maxUpdatedAt = null;
+        
+        // Find the most recent session updatedAt
+        for (const [sessionKey, session] of Object.entries(sessionsData)) {
+          if (session.updatedAt && (!maxUpdatedAt || session.updatedAt > maxUpdatedAt)) {
+            maxUpdatedAt = session.updatedAt;
+          }
+        }
+        
+        if (maxUpdatedAt) {
+          // Convert milliseconds to ISO string
+          const lastActive = new Date(maxUpdatedAt).toISOString();
+          
+          // Only update if this is more recent than existing
+          if (!agent.last_active_at || lastActive > agent.last_active_at) {
+            db.prepare(`
+              UPDATE agent_status 
+              SET last_active_at = ?, updated_at = datetime('now')
+              WHERE agent_id = ?
+            `).run(lastActive, agent.agent_id);
+            updated.push({ agent_id: agent.agent_id, last_active_at: lastActive });
+          }
+        }
+      }
+    } catch (e) {
+      // Agent may not have sessions directory yet - skip
+    }
+  }
+  
+  logActivity('sync', 'agent', null, `Synced last_active_at for ${updated.length} agents from OpenClaw sessions`);
+  return updated.length;
+}
+
+module.exports = { db, stmts, logActivity, syncAgentActivityToStatus, syncFromOpenClawSessions };

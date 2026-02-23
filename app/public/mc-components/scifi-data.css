@@ -1,0 +1,406 @@
+/* ═══ MC Sci-Fi Theme: Data Display ═══ */
+/* Data display components - import after tokens.css */
+
+/* ─────────────────────────────────────────
+   Table
+   ───────────────────────────────────────── */
+.table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-lg);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--mc-text-sm);
+}
+
+.table th {
+  padding: var(--mc-space-3) var(--mc-space-4);
+  text-align: left;
+  font-weight: 600;
+  font-size: var(--mc-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mc-text-muted);
+  background: rgba(18, 22, 32, 0.5);
+  border-bottom: 1px solid var(--mc-border-subtle);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: var(--mc-space-3) var(--mc-space-4);
+  color: var(--mc-text-secondary);
+  border-bottom: 1px solid rgba(45, 49, 72, 0.3);
+  vertical-align: middle;
+}
+
+.table tbody tr {
+  transition: all var(--mc-transition-fast);
+}
+
+.table tbody tr:hover {
+  background: rgba(37, 42, 64, 0.5);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ─────────────────────────────────────────
+   Table Variants
+   ───────────────────────────────────────── */
+.table-striped tbody tr:nth-child(even) {
+  background: rgba(26, 31, 46, 0.3);
+}
+
+.table-striped tbody tr:hover {
+  background: rgba(37, 42, 64, 0.5);
+}
+
+.table-compact th,
+.table-compact td {
+  padding: var(--mc-space-2) var(--mc-space-3);
+}
+
+/* ─────────────────────────────────────────
+   Badge
+   ───────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mc-space-1);
+  padding: var(--mc-space-1) var(--mc-space-2);
+  font-size: var(--mc-text-xs);
+  font-weight: 500;
+  border-radius: var(--mc-radius-sm);
+  white-space: nowrap;
+}
+
+/* Badge variants */
+.badge-default {
+  background: rgba(45, 49, 72, 0.5);
+  color: var(--mc-text-secondary);
+  border: 1px solid var(--mc-border-subtle);
+}
+
+.badge-primary {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.15));
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.badge-cyan {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(6, 182, 212, 0.15));
+  color: #22d3ee;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+.badge-success {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(16, 185, 129, 0.15));
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-warning {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(245, 158, 11, 0.15));
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-danger {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(239, 68, 68, 0.15));
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.badge-purple {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(139, 92, 246, 0.15));
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.badge-pink {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.25), rgba(236, 72, 153, 0.15));
+  color: #f472b6;
+  border: 1px solid rgba(236, 72, 153, 0.3);
+}
+
+/* Badge dot indicator */
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.badge-dot-success { background: var(--mc-accent-green); }
+.badge-dot-warning { background: var(--mc-accent-amber); }
+.badge-dot-danger { background: var(--mc-accent-red); }
+.badge-dot-info { background: var(--mc-accent-cyan); }
+
+/* Department badges */
+.dept-badge {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.15));
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.dept-engineering { background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.15)); color: #60a5fa; border-color: rgba(59, 130, 246, 0.3); }
+.dept-marketing { background: linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(6, 182, 212, 0.15)); color: #22d3ee; border-color: rgba(6, 182, 212, 0.3); }
+.dept-sales { background: linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(34, 197, 94, 0.15)); color: #4ade80; border-color: rgba(34, 197, 94, 0.3); }
+.dept-operations { background: linear-gradient(135deg, rgba(148, 163, 184, 0.25), rgba(148, 163, 184, 0.15)); color: #94a3b8; border-color: rgba(148, 163, 184, 0.3); }
+.dept-research { background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(139, 92, 246, 0.15)); color: #c084fc; border-color: rgba(139, 92, 246, 0.3); }
+.dept-design { background: linear-gradient(135deg, rgba(236, 72, 153, 0.25), rgba(236, 72, 153, 0.15)); color: #f472b6; border-color: rgba(236, 72, 153, 0.3); }
+
+/* ─────────────────────────────────────────
+   Status Indicator
+   ───────────────────────────────────────── */
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mc-space-2);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  position: relative;
+}
+
+.status-dot-active,
+.status-dot.active {
+  background: var(--mc-accent-green);
+  box-shadow: 0 0 8px var(--mc-accent-green);
+}
+
+.status-dot-active::after,
+.status-dot.active::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1px solid var(--mc-accent-green);
+  opacity: 0.5;
+  animation: statusPulse 2s infinite;
+}
+
+.status-dot-inactive {
+  background: var(--mc-text-muted);
+}
+
+.status-dot-pending {
+  background: var(--mc-accent-amber);
+}
+
+.status-dot-error {
+  background: var(--mc-accent-red);
+}
+
+@keyframes statusPulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.5); opacity: 0; }
+}
+
+/* ─────────────────────────────────────────
+   Progress Bar
+   ───────────────────────────────────────── */
+.progress {
+  width: 100%;
+  height: 8px;
+  background: var(--mc-bg-tertiary);
+  border-radius: var(--mc-radius-full);
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: var(--mc-radius-full);
+  transition: width var(--mc-transition-slow);
+}
+
+.progress-bar-primary {
+  background: linear-gradient(90deg, var(--mc-accent-blue), var(--mc-accent-cyan));
+}
+
+.progress-bar-success {
+  background: linear-gradient(90deg, var(--mc-accent-green), #34D399);
+}
+
+.progress-bar-warning {
+  background: linear-gradient(90deg, var(--mc-accent-amber), #FCD34D);
+}
+
+.progress-bar-danger {
+  background: linear-gradient(90deg, var(--mc-accent-red), #F87171);
+}
+
+/* Progress with glow */
+.progress-glow .progress-bar {
+  box-shadow: 0 0 10px currentColor;
+}
+
+/* Progress sizes */
+.progress-sm { height: 4px; }
+.progress-md { height: 8px; }
+.progress-lg { height: 12px; }
+
+/* ─────────────────────────────────────────
+   Progress Circle
+   ───────────────────────────────────────── */
+.progress-circle {
+  position: relative;
+  width: 60px;
+  height: 60px;
+}
+
+.progress-circle svg {
+  transform: rotate(-90deg);
+}
+
+.progress-circle-track {
+  fill: none;
+  stroke: var(--mc-bg-tertiary);
+  stroke-width: 4;
+}
+
+.progress-circle-fill {
+  fill: none;
+  stroke: var(--mc-accent-cyan);
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset var(--mc-transition-slow);
+}
+
+.progress-circle-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mc-font-mono);
+  font-size: var(--mc-text-sm);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+}
+
+/* ─────────────────────────────────────────
+   Avatar
+   ───────────────────────────────────────── */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--mc-accent-cyan), var(--mc-accent-blue));
+  color: white;
+  font-weight: 600;
+  font-size: var(--mc-text-sm);
+  border: 2px solid var(--mc-border-default);
+  transition: all var(--mc-transition-fast);
+}
+
+.avatar:hover {
+  border-color: var(--mc-accent-cyan);
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+}
+
+.avatar-sm { width: 32px; height: 32px; font-size: var(--mc-text-xs); }
+.avatar-md { width: 40px; height: 40px; }
+.avatar-lg { width: 48px; height: 48px; font-size: var(--mc-text-base); }
+.avatar-xl { width: 64px; height: 64px; font-size: var(--mc-text-lg); }
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* Avatar group */
+.avatar-group {
+  display: flex;
+}
+
+.avatar-group .avatar {
+  margin-left: -8px;
+  border: 2px solid var(--mc-bg-secondary);
+}
+
+.avatar-group .avatar:first-child {
+  margin-left: 0;
+}
+
+/* ─────────────────────────────────────────
+   Tooltip
+   ───────────────────────────────────────── */
+.tooltip {
+  position: relative;
+}
+
+.tooltip-content {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  padding: var(--mc-space-2) var(--mc-space-3);
+  background: var(--mc-bg-tertiary);
+  border: 1px solid var(--mc-border-default);
+  border-radius: var(--mc-radius-sm);
+  font-size: var(--mc-text-xs);
+  color: var(--mc-text-secondary);
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--mc-transition-fast);
+  z-index: var(--mc-z-tooltip);
+}
+
+.tooltip:hover .tooltip-content {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-4px);
+}
+
+/* ─────────────────────────────────────────
+   Skeleton Loading
+   ───────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(45, 49, 72, 0.3) 25%,
+    rgba(45, 49, 72, 0.5) 50%,
+    rgba(45, 49, 72, 0.3) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton 1.5s ease-in-out infinite;
+  border-radius: var(--mc-radius-sm);
+}
+
+@keyframes skeleton {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-text {
+  height: 1em;
+  margin-bottom: var(--mc-space-2);
+}
+
+.skeleton-title {
+  height: 1.5em;
+  width: 60%;
+  margin-bottom: var(--mc-space-3);
+}
+
+.skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.skeleton-card {
+  height: 100px;
+}

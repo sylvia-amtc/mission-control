@@ -11,10 +11,13 @@ const TWENTY_GRAPHQL = `${TWENTY_URL}/graphql`;
 
 // Auth credentials for Twenty CRM
 const TWENTY_EMAIL = process.env.TWENTY_EMAIL || 'elena@amtc.tv';
-const TWENTY_PASSWORD = process.env.TWENTY_PASSWORD || 'AmteccoMC2024!';
+const TWENTY_PASSWORD = process.env.TWENTY_PASSWORD || 'TempPass2026!';
 
 let cachedAccessToken = null;
 let tokenExpiresAt = 0;
+
+// Force fresh auth on module load
+console.log('[Twenty CRM] Module loaded - will fetch fresh token');
 
 // ─── Auth ───────────────────────────────────────────────────────
 

@@ -1,0 +1,13 @@
+/* ═══ MC Sci-Fi Theme: Components ═══ */
+/* Combined import file - import this to get everything */
+
+/* Load in order: tokens → base → components */
+@import url('./scifi-tokens.css');
+@import url('./scifi-base.css');
+@import url('./scifi-buttons.css');
+@import url('./scifi-cards.css');
+@import url('./scifi-navigation.css');
+@import url('./scifi-forms.css');
+@import url('./scifi-layout.css');
+@import url('./scifi-data.css');
+@import url('./scifi-effects.css');

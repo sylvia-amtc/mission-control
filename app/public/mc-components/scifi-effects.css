@@ -1,0 +1,382 @@
+/* ═══ MC Sci-Fi Theme: Effects ═══ */
+/* Animations and visual effects - import after tokens.css */
+
+/* ─────────────────────────────────────────
+   Background Effects
+   ───────────────────────────────────────── */
+.hero-background {
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-background::before {
+  content: '';
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, 
+    rgba(6, 182, 212, 0.08) 0%, 
+    transparent 70%);
+  top: -200px;
+  right: -200px;
+  animation: orbFloat 20s infinite ease-in-out;
+  pointer-events: none;
+}
+
+.hero-background::after {
+  content: '';
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, 
+    rgba(139, 92, 246, 0.06) 0%, 
+    transparent 70%);
+  bottom: -100px;
+  left: -100px;
+  animation: orbFloat 15s infinite ease-in-out reverse;
+  pointer-events: none;
+}
+
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(30px, -30px); }
+}
+
+/* ─────────────────────────────────────────
+   Glow Effects
+   ───────────────────────────────────────── */
+.glow {
+  box-shadow: var(--mc-glow-cyan);
+}
+
+.glow-blue {
+  box-shadow: var(--mc-glow-blue);
+}
+
+.glow-purple {
+  box-shadow: var(--mc-glow-purple);
+}
+
+.glow-green {
+  box-shadow: var(--mc-glow-green);
+}
+
+.glow-red {
+  box-shadow: var(--mc-glow-red);
+}
+
+/* Text glow */
+.text-glow {
+  text-shadow: var(--mc-text-glow);
+}
+
+/* Border glow on hover */
+.border-glow {
+  transition: box-shadow var(--mc-transition-base);
+}
+
+.border-glow:hover {
+  box-shadow: var(--mc-glow-cyan);
+}
+
+/* ─────────────────────────────────────────
+   Severity Borders
+   ───────────────────────────────────────── */
+.severity-red {
+  border-left: 3px solid var(--mc-accent-red);
+  box-shadow: inset 3px 0 10px rgba(239, 68, 68, 0.1);
+}
+
+.severity-yellow {
+  border-left: 3px solid var(--mc-accent-amber);
+  box-shadow: inset 3px 0 10px rgba(245, 158, 11, 0.1);
+}
+
+.severity-blue {
+  border-left: 3px solid var(--mc-accent-cyan);
+  box-shadow: inset 3px 0 10px rgba(6, 182, 212, 0.1);
+}
+
+.severity-green {
+  border-left: 3px solid var(--mc-accent-green);
+  box-shadow: inset 3px 0 10px rgba(16, 185, 129, 0.1);
+}
+
+/* ─────────────────────────────────────────
+   Priority Indicators
+   ───────────────────────────────────────── */
+.priority-critical {
+  border-left: 3px solid #EF4444;
+  box-shadow: inset 3px 0 15px rgba(239, 68, 68, 0.1);
+}
+
+.priority-high {
+  border-left: 3px solid #F59E0B;
+}
+
+.priority-medium {
+  border-left: 3px solid #3B82F6;
+}
+
+.priority-low {
+  border-left: 3px solid #22C55E;
+}
+
+/* ─────────────────────────────────────────
+   Animations
+   ───────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Animation utility classes */
+.animate-fade-in { animation: fadeIn 0.3s ease forwards; }
+.animate-fade-in-up { animation: fadeInUp 0.3s ease forwards; }
+.animate-fade-in-down { animation: fadeInDown 0.3s ease forwards; }
+.animate-slide-in-left { animation: slideInLeft 0.3s ease forwards; }
+.animate-slide-in-right { animation: slideInRight 0.3s ease forwards; }
+.animate-scale-in { animation: scaleIn 0.2s ease forwards; }
+.animate-pulse { animation: pulse 2s infinite; }
+.animate-spin { animation: spin 1s linear infinite; }
+
+/* Delays */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+
+/* ─────────────────────────────────────────
+   Hover Effects
+   ───────────────────────────────────────── */
+.hover-lift {
+  transition: transform var(--mc-transition-base);
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+.hover-lift-lg:hover {
+  transform: translateY(-4px);
+}
+
+.hover-scale {
+  transition: transform var(--mc-transition-fast);
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+.hover-glow {
+  transition: box-shadow var(--mc-transition-base);
+}
+
+.hover-glow:hover {
+  box-shadow: var(--mc-glow-cyan);
+}
+
+/* ─────────────────────────────────────────
+   Kanban Specific
+   ───────────────────────────────────────── */
+.kanban-card {
+  background: rgba(30, 34, 53, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--mc-border-default);
+  border-radius: var(--mc-radius-md);
+  padding: var(--mc-space-4);
+  transition: all var(--mc-transition-base);
+}
+
+.kanban-card:hover {
+  border-color: rgba(6, 182, 212, 0.5);
+  box-shadow: 
+    var(--mc-shadow-md),
+    0 0 15px rgba(6, 182, 212, 0.1);
+  transform: translateY(-2px);
+}
+
+.kanban-card.sortable-drag {
+  box-shadow: 0 12px 40px rgba(6, 182, 212, 0.25);
+  border-color: var(--mc-accent-cyan);
+}
+
+.kanban-col-header {
+  background: linear-gradient(180deg, 
+    rgba(18, 22, 32, 0.9) 0%, 
+    transparent 100%);
+  border-bottom: 1px solid var(--mc-border-subtle);
+  padding: var(--mc-space-4);
+  position: relative;
+}
+
+.kanban-col-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: var(--mc-space-4);
+  right: var(--mc-space-4);
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    var(--mc-accent-cyan), 
+    transparent);
+  opacity: 0.5;
+}
+
+/* ─────────────────────────────────────────
+   Deal Card
+   ───────────────────────────────────────── */
+.deal-card {
+  background: rgba(30, 34, 53, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--mc-border-default);
+  border-radius: var(--mc-radius-md);
+  padding: var(--mc-space-4);
+  transition: all var(--mc-transition-base);
+}
+
+.deal-card:hover {
+  border-color: rgba(6, 182, 212, 0.5);
+  box-shadow: 
+    var(--mc-shadow-md),
+    0 0 15px rgba(6, 182, 212, 0.1);
+  transform: translateY(-2px);
+}
+
+/* ─────────────────────────────────────────
+   Gantt Chart
+   ───────────────────────────────────────── */
+.gantt-bar {
+  position: absolute;
+  height: 22px;
+  top: 7px;
+  border-radius: var(--mc-radius-sm);
+  font-size: var(--mc-text-xs);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--mc-space-2);
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all var(--mc-transition-base);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.gantt-bar:hover {
+  filter: brightness(1.2);
+  box-shadow: var(--mc-shadow-md), 0 0 10px rgba(6, 182, 212, 0.2);
+  transform: translateY(-1px);
+}
+
+.gantt-milestone {
+  position: absolute;
+  top: 10px;
+  width: 14px;
+  height: 14px;
+  transform: rotate(45deg);
+  border: 2px solid var(--mc-accent-amber);
+  background: rgba(26, 31, 46, 0.9);
+  cursor: pointer;
+  z-index: 2;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+}
+
+.gantt-milestone.completed {
+  background: var(--mc-accent-green);
+  border-color: var(--mc-accent-green);
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.5);
+}
+
+/* ─────────────────────────────────────────
+   Drag & Drop States
+   ───────────────────────────────────────── */
+.drag-over {
+  border-color: var(--mc-accent-cyan) !important;
+  background: rgba(6, 182, 212, 0.1) !important;
+}
+
+.dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+}
+
+/* ─────────────────────────────────────────
+   Backdrop Blur Support
+   ───────────────────────────────────────── */
+@supports not (backdrop-filter: blur(12px)) {
+  .card,
+  .panel,
+  .modal,
+  .top-bar {
+    background: rgba(26, 31, 46, 0.95);
+  }
+}

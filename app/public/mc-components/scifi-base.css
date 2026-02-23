@@ -1,0 +1,156 @@
+/* ═══ MC Sci-Fi Theme: Base Styles ═══ */
+/* Reset and foundational styles - import after tokens.css */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ─────────────────────────────────────────
+   Base Reset
+   ───────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--mc-font-sans);
+  font-size: var(--mc-text-base);
+  line-height: 1.5;
+  color: var(--mc-text-primary);
+  background: linear-gradient(135deg, var(--mc-bg-primary) 0%, var(--mc-bg-elevated) 50%, var(--mc-bg-primary) 100%);
+  min-height: 100vh;
+}
+
+/* Subtle grid pattern background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(45, 49, 72, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(45, 49, 72, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ─────────────────────────────────────────
+   Typography
+   ───────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--mc-font-sans);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--mc-text-primary);
+}
+
+h1 { font-size: var(--mc-text-4xl); }
+h2 { font-size: var(--mc-text-3xl); }
+h3 { font-size: var(--mc-text-2xl); }
+h4 { font-size: var(--mc-text-xl); }
+h5 { font-size: var(--mc-text-lg); }
+h6 { font-size: var(--mc-text-base); }
+
+p {
+  margin-bottom: var(--mc-space-4);
+  color: var(--mc-text-secondary);
+}
+
+a {
+  color: var(--mc-accent-cyan);
+  text-decoration: none;
+  transition: color var(--mc-transition-fast);
+}
+
+a:hover {
+  color: var(--mc-accent-blue);
+}
+
+/* Monospace for data/numbers */
+.mono, .stat-value, .kpi-value, code {
+  font-family: var(--mc-font-mono);
+  font-feature-settings: "tnum" on;
+}
+
+/* Section headers - uppercase with letter-spacing */
+.section-header {
+  font-size: var(--mc-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--mc-accent-cyan);
+  font-weight: 600;
+}
+
+/* ─────────────────────────────────────────
+   Focus States
+   ───────────────────────────────────────── */
+*:focus-visible {
+  outline: none;
+  box-shadow: 
+    0 0 0 2px var(--mc-bg-primary),
+    0 0 0 4px var(--mc-accent-cyan);
+}
+
+/* ─────────────────────────────────────────
+   Scrollbar Styling
+   ───────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 17, 23, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(45, 49, 72, 0.8);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 182, 212, 0.5);
+}
+
+/* ─────────────────────────────────────────
+   Selection
+   ───────────────────────────────────────── */
+::selection {
+  background: rgba(6, 182, 212, 0.3);
+  color: var(--mc-text-primary);
+}
+
+/* ─────────────────────────────────────────
+   Utility Classes
+   ───────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Glow text utility */
+.text-glow {
+  text-shadow: var(--mc-text-glow);
+}
+
+/* Gradient text */
+.text-gradient {
+  background: linear-gradient(135deg, var(--mc-text-primary), var(--mc-accent-cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

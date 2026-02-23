@@ -1,0 +1,317 @@
+/* ═══ MC Sci-Fi Theme: Cards ═══ */
+/* Card components - import after tokens.css */
+
+/* ─────────────────────────────────────────
+   Card Base
+   ───────────────────────────────────────── */
+.card {
+  background: linear-gradient(
+    135deg,
+    rgba(26, 31, 46, 0.9) 0%,
+    rgba(18, 22, 32, 0.95) 100%
+  );
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--mc-border-default);
+  border-radius: var(--mc-radius-lg);
+  box-shadow: 
+    var(--mc-shadow-md),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: all var(--mc-transition-base);
+}
+
+.card:hover {
+  border-color: var(--mc-border-glow);
+  box-shadow: 
+    var(--mc-shadow-lg),
+    0 0 20px rgba(6, 182, 212, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Optional: Corner accent */
+.card-accent {
+  position: relative;
+}
+
+.card-accent::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 24px;
+  height: 24px;
+  border-top: 2px solid var(--mc-accent-cyan);
+  border-left: 2px solid var(--mc-accent-cyan);
+  border-radius: var(--mc-radius-lg) 0 0 0;
+  opacity: 0.5;
+}
+
+/* ─────────────────────────────────────────
+   Card Sizes
+   ───────────────────────────────────────── */
+.card-sm {
+  padding: var(--mc-space-3);
+  border-radius: var(--mc-radius-md);
+}
+
+.card-md {
+  padding: var(--mc-space-4);
+}
+
+.card-lg {
+  padding: var(--mc-space-6);
+  border-radius: var(--mc-radius-xl);
+}
+
+/* ─────────────────────────────────────────
+   Card Variants
+   ───────────────────────────────────────── */
+.card-flat {
+  background: var(--mc-bg-tertiary);
+  backdrop-filter: none;
+}
+
+.card-glass {
+  background: var(--mc-bg-glass);
+}
+
+.card-interactive {
+  cursor: pointer;
+}
+
+/* ─────────────────────────────────────────
+   Stat Card
+   ───────────────────────────────────────── */
+.stat-card {
+  background: linear-gradient(135deg, 
+    rgba(26, 31, 46, 0.8) 0%, 
+    rgba(18, 22, 32, 0.9) 100%);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--mc-border-default);
+  border-radius: var(--mc-radius-xl);
+  padding: var(--mc-space-6);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Shimmer overlay */
+.stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.03),
+    transparent
+  );
+  animation: cardShimmer 3s infinite;
+}
+
+@keyframes cardShimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.stat-card-label {
+  font-size: var(--mc-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mc-text-muted);
+  margin-bottom: var(--mc-space-2);
+}
+
+.stat-card-value {
+  font-family: var(--mc-font-mono);
+  font-size: var(--mc-text-4xl);
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--mc-text-primary), var(--mc-text-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 30px rgba(6, 182, 212, 0.3);
+}
+
+.stat-card-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mc-space-1);
+  font-size: var(--mc-text-sm);
+  margin-top: var(--mc-space-2);
+}
+
+.stat-card-trend.positive {
+  color: var(--mc-accent-green);
+}
+
+.stat-card-trend.negative {
+  color: var(--mc-accent-red);
+}
+
+/* ─────────────────────────────────────────
+   KPI Card
+   ───────────────────────────────────────── */
+.kpi-card {
+  background: linear-gradient(135deg, 
+    rgba(26, 31, 46, 0.85) 0%, 
+    rgba(18, 22, 32, 0.95) 100%);
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-lg);
+  padding: var(--mc-space-5);
+}
+
+.kpi-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--mc-space-3);
+}
+
+.kpi-card-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--mc-radius-md);
+  background: rgba(6, 182, 212, 0.15);
+  color: var(--mc-accent-cyan);
+}
+
+.kpi-card-value {
+  font-family: var(--mc-font-mono);
+  font-size: var(--mc-text-3xl);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+}
+
+.kpi-card-label {
+  font-size: var(--mc-text-sm);
+  color: var(--mc-text-secondary);
+}
+
+/* ─────────────────────────────────────────
+   Task Card
+   ───────────────────────────────────────── */
+.task-card {
+  background: rgba(30, 34, 53, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--mc-border-default);
+  border-radius: var(--mc-radius-md);
+  padding: var(--mc-space-4);
+  transition: all var(--mc-transition-base);
+}
+
+.task-card:hover {
+  border-color: var(--mc-border-glow);
+  box-shadow: 
+    var(--mc-shadow-md),
+    0 0 15px rgba(6, 182, 212, 0.1);
+  transform: translateY(-2px);
+}
+
+.task-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--mc-space-3);
+  margin-bottom: var(--mc-space-3);
+}
+
+.task-card-title {
+  font-size: var(--mc-text-base);
+  font-weight: 500;
+  color: var(--mc-text-primary);
+}
+
+.task-card-description {
+  font-size: var(--mc-text-sm);
+  color: var(--mc-text-secondary);
+  line-height: 1.5;
+}
+
+.task-card-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--mc-space-3);
+  margin-top: var(--mc-space-3);
+  padding-top: var(--mc-space-3);
+  border-top: 1px solid var(--mc-border-subtle);
+}
+
+/* ─────────────────────────────────────────
+   Action Card
+   ───────────────────────────────────────── */
+.action-card {
+  background: rgba(26, 31, 46, 0.5);
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-md);
+  padding: var(--mc-space-4);
+  margin-bottom: var(--mc-space-2);
+  transition: all var(--mc-transition-base);
+  position: relative;
+}
+
+.action-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: var(--mc-radius-md) 0 0 var(--mc-radius-md);
+  background: var(--severity-color, var(--mc-border-default));
+  box-shadow: 0 0 10px var(--severity-color, transparent);
+}
+
+.action-card:hover {
+  background: rgba(26, 31, 46, 0.8);
+  border-color: var(--mc-border-strong);
+  transform: translateX(4px);
+}
+
+/* ─────────────────────────────────────────
+   Blocker Card
+   ───────────────────────────────────────── */
+.blocker-card {
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: linear-gradient(135deg, 
+    rgba(239, 68, 68, 0.08) 0%, 
+    rgba(26, 31, 46, 0.9) 100%);
+}
+
+.blocker-card:hover {
+  border-color: rgba(239, 68, 68, 0.6);
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.15);
+}
+
+/* ─────────────────────────────────────────
+   Card Grid
+   ───────────────────────────────────────── */
+.card-grid {
+  display: grid;
+  gap: var(--mc-space-4);
+}
+
+.card-grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.card-grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.card-grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 768px) {
+  .card-grid-2,
+  .card-grid-3,
+  .card-grid-4 {
+    grid-template-columns: 1fr;
+  }
+}

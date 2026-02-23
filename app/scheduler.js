@@ -19,7 +19,7 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { db, stmts, logActivity } = require('./db');
+const { db, stmts, logActivity, syncAgentActivityToStatus, syncFromOpenClawSessions } = require('./db');
 
 const VP_WORKSPACES = [
   { name: 'Nadia', dept: 'Research & Intelligence', path: '/root/.openclaw/workspace-nadia/' },
@@ -395,7 +395,15 @@ function startScheduler(opts = {}) {
   try { flagMilestones(); } catch (e) {}
   try { calculateDerivedKPIs(); } catch (e) {}
   try { calculateDeptHealthScores(); } catch (e) {}
+  try { syncAgentActivityToStatus(); } catch (e) { console.error('[Scheduler] Agent activity sync failed:', e.message); }
+  try { syncFromOpenClawSessions(); } catch (e) { console.error('[Scheduler] OpenClaw session sync failed:', e.message); }
   updateSyncStatus('startup', 'ok', 'Initial local recalc complete');
+
+  // ── Every 15 minutes — Sync agent activity timestamps ──
+  setInterval(() => {
+    try { syncAgentActivityToStatus(); } catch (e) { console.error('[Scheduler] Agent activity sync failed:', e.message); }
+    try { syncFromOpenClawSessions(); } catch (e) { console.error('[Scheduler] OpenClaw session sync failed:', e.message); }
+  }, 15 * 60 * 1000);
 
   // ── Daily 06:45 UTC — Master Refresh (summon ALL VPs for everything) ──
   scheduleDailyAt(6, 45, () => {

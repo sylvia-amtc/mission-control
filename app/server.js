@@ -10,7 +10,7 @@ log.setupProcessHandlers().startMemoryMonitor();
 const express = require('express');
 const http = require('http');
 const { WebSocketServer } = require('ws');
-const { db, stmts, logActivity } = require('./db');
+const { db, stmts, logActivity, syncAgentActivityToStatus, syncFromOpenClawSessions } = require('./db');
 const { syncAll, syncKPIs } = require('./sync');
 const { syncFromTwenty, initialSync: twentyInitialSync } = require('./twenty-sync');
 const { startScheduler, syncAllSources, updateSyncStatus } = require('./scheduler');
@@ -150,6 +150,12 @@ app.get('/api/tasks/:id', (req, res) => {
   const task = stmts.getTask.get(req.params.id);
   if (!task) return res.status(404).json({ error: 'Not found' });
   res.json(task);
+});
+
+// Blockers API - get all blockers (tasks with is_blocker=1)
+app.get('/api/blockers', (req, res) => {
+  const blockers = stmts.getBlockers.all();
+  res.json(blockers);
 });
 
 app.post('/api/tasks', (req, res) => {
@@ -943,29 +949,40 @@ app.get('/api/funnel', (req, res) => {
     revenueData[s] = metrics;
   }
 
-  // Build funnel stages from sales pipeline data
-  const salesTasks = stmts.getTasksByDept.all('Sales & Business Dev');
+  // Build funnel from CRM deals (not action items)
+  let deals = [];
+  try {
+    deals = stmts.getAllDeals.all();
+  } catch(e) {
+    deals = [];
+  }
+  
+  // Map CRM stages to funnel stages
+  const stageMap = {
+    'lead': 0,           // Leads / Targets
+    'qualified': 1,       // Contacted (treating qualified as contacted)
+    'opportunity': 2,    // Qualified
+    'proposal': 3,       // Proposal
+    'closed_won': 4,     // Closed Won
+  };
+  
+  const stageCounts = [0, 0, 0, 0, 0];
+  for (const deal of deals) {
+    const idx = stageMap[deal.stage] ?? 0;
+    stageCounts[idx]++;
+  }
+  
   const funnel = {
     stages: [
-      { name: 'Leads / Targets', count: 0, value: '' },
-      { name: 'Contacted', count: 0, value: '' },
-      { name: 'Qualified', count: 0, value: '' },
-      { name: 'Proposal', count: 0, value: '' },
-      { name: 'Closed Won', count: 0, value: '' },
+      { name: 'Leads / Targets', count: stageCounts[0], value: '' },
+      { name: 'Contacted', count: stageCounts[1], value: '' },
+      { name: 'Qualified', count: stageCounts[2], value: '' },
+      { name: 'Proposal', count: stageCounts[3], value: '' },
+      { name: 'Closed Won', count: stageCounts[4], value: '' },
     ],
-    tasks: salesTasks,
+    tasks: [],
     metrics: revenueData,
   };
-
-  // Map tasks to stages by keywords
-  for (const t of salesTasks) {
-    const title = (t.title + ' ' + t.description).toLowerCase();
-    if (/close|won|deal|revenue/.test(title)) funnel.stages[4].count++;
-    else if (/proposal|quote|pricing/.test(title)) funnel.stages[3].count++;
-    else if (/qualif|assess|discover/.test(title)) funnel.stages[2].count++;
-    else if (/contact|outreach|reach|email|call/.test(title)) funnel.stages[1].count++;
-    else funnel.stages[0].count++;
-  }
 
   res.json(funnel);
 });
@@ -1257,21 +1274,22 @@ app.get('/api/org/agents/:id', (req, res) => {
 app.patch('/api/org/agents/:id/status', (req, res) => {
   const agent = stmts.getAgent.get(req.params.id);
   if (!agent) return res.status(404).json({ error: 'Agent not found' });
+  const now = new Date().toISOString();
   const updates = {
     agent_id: req.params.id,
     status: req.body.status ?? agent.status,
     current_task: req.body.current_task ?? agent.current_task,
     last_task: req.body.last_task ?? agent.last_task,
-    last_active_at: req.body.last_active_at ?? agent.last_active_at,
+    last_active_at: req.body.last_active_at ?? (req.body.status === 'active' || req.body.status === 'sleeping' ? now : agent.last_active_at),
     next_wake_at: req.body.next_wake_at ?? agent.next_wake_at,
   };
   stmts.updateAgentStatus.run(updates);
   // Log activity if task changed
   if (req.body.current_task && req.body.status === 'active') {
-    stmts.insertAgentActivity.run({ agent_id: req.params.id, task: req.body.current_task, status: 'started', started_at: new Date().toISOString() });
+    stmts.insertAgentActivity.run({ agent_id: req.params.id, task: req.body.current_task, status: 'started', started_at: now });
   }
   if (req.body.last_task && req.body.status === 'sleeping') {
-    stmts.insertAgentActivity.run({ agent_id: req.params.id, task: req.body.last_task, status: 'completed', started_at: req.body.last_active_at || new Date().toISOString() });
+    stmts.insertAgentActivity.run({ agent_id: req.params.id, task: req.body.last_task, status: 'completed', started_at: req.body.last_active_at || now });
   }
   const updated = stmts.getAgent.get(req.params.id);
   updated.capabilities = JSON.parse(updated.capabilities || '[]');
@@ -1286,25 +1304,52 @@ app.post('/api/org/agents/batch-status', (req, res) => {
   for (const item of items) {
     const agent = stmts.getAgent.get(item.agent_id);
     if (!agent) { results.push({ agent_id: item.agent_id, error: 'not found' }); continue; }
+    const now = new Date().toISOString();
     stmts.updateAgentStatus.run({
       agent_id: item.agent_id,
       status: item.status ?? agent.status,
       current_task: item.current_task ?? agent.current_task,
       last_task: item.last_task ?? agent.last_task,
-      last_active_at: item.last_active_at ?? agent.last_active_at,
+      last_active_at: item.last_active_at ?? (item.status === 'active' || item.status === 'sleeping' ? now : agent.last_active_at),
       next_wake_at: item.next_wake_at ?? agent.next_wake_at,
     });
     // Log activity on status transitions
     if (item.current_task && item.status === 'active' && item.current_task !== agent.current_task) {
-      stmts.insertAgentActivity.run({ agent_id: item.agent_id, task: item.current_task, status: 'started', started_at: new Date().toISOString() });
+      stmts.insertAgentActivity.run({ agent_id: item.agent_id, task: item.current_task, status: 'started', started_at: now });
     }
     if (item.last_task && item.status === 'sleeping' && item.last_task !== agent.last_task) {
-      stmts.insertAgentActivity.run({ agent_id: item.agent_id, task: item.last_task, status: 'completed', started_at: item.last_active_at || new Date().toISOString() });
+      stmts.insertAgentActivity.run({ agent_id: item.agent_id, task: item.last_task, status: 'completed', started_at: item.last_active_at || now });
     }
     results.push({ agent_id: item.agent_id, ok: true });
   }
   broadcast('agents_batch_status', results);
   res.json({ ok: true, results });
+});
+
+// Sync agent_status.last_active_at from agent_activity table
+app.post('/api/org/agents/sync-activity', (req, res) => {
+  try {
+    const count = syncAgentActivityToStatus();
+    const agents = stmts.getAllAgents.all();
+    broadcast('agents_status', agents);
+    res.json({ ok: true, synced: count });
+  } catch (err) {
+    log.error('Failed to sync agent activity:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Sync agent_status.last_active_at directly from OpenClaw session files
+app.post('/api/org/agents/sync-sessions', (req, res) => {
+  try {
+    const count = syncFromOpenClawSessions();
+    const agents = stmts.getAllAgents.all();
+    broadcast('agents_status', agents);
+    res.json({ ok: true, synced: count });
+  } catch (err) {
+    log.error('Failed to sync from OpenClaw sessions:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post('/api/org/agents/:id/wake', (req, res) => {

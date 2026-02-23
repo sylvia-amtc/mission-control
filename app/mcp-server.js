@@ -123,6 +123,17 @@ server.tool('get_task_stats', 'Get task statistics (counts by status, blockers, 
   }
 );
 
+server.tool('list_blockers', 'List all active blockers (tasks marked as blockers)',
+  { status: z.enum(['all', 'open', 'done']).optional().describe('Filter by status (default: open)') },
+  async ({ status }) => {
+    let blockers;
+    if (status === 'all') blockers = db.prepare("SELECT * FROM tasks WHERE is_blocker = 1 ORDER BY priority, created_at").all();
+    else if (status === 'done') blockers = db.prepare("SELECT * FROM tasks WHERE is_blocker = 1 AND status = 'done' ORDER BY priority, created_at").all();
+    else blockers = db.prepare("SELECT * FROM tasks WHERE is_blocker = 1 AND status != 'done' ORDER BY priority, created_at").all();
+    return { content: [{ type: 'text', text: JSON.stringify(blockers, null, 2) }] };
+  }
+);
+
 // 4. Sync Status
 server.tool('get_sync_status', 'Get last sync times for all data sources',
   {},
@@ -524,6 +535,100 @@ server.tool('update_agent_status', 'Update agent status and task info',
 server.tool('wake_agent', 'Write a wake request for an agent',
   { agent_id: z.string(), message: z.string().describe('What the agent should work on'), requested_by: z.string().optional() },
   async ({ agent_id, ...body }) => apiResult(await api('POST', `/api/org/agents/${agent_id}/wake`, body))
+);
+
+// ─── VISUAL REQUESTS ────────────────────────────────────────────
+
+server.tool('list_visual_requests', 'List visual requests with optional status filter',
+  { status: z.string().optional().describe('Filter by status (pending/in_progress/changes_requested/done)') },
+  async ({ status }) => {
+    const url = status ? `/api/visual-requests?status=${status}` : '/api/visual-requests';
+    return apiResult(await api('GET', url));
+  }
+);
+
+server.tool('get_visual_request', 'Get a single visual request by ID',
+  { id: z.number().describe('Visual request ID') },
+  async ({ id }) => apiResult(await api('GET', `/api/visual-requests/${id}`))
+);
+
+server.tool('create_visual_request', 'Create a new visual request',
+  { title: z.string(), description: z.string(), requesting_agent: z.string().optional(), associated_post_id: z.number().optional(), deadline: z.string().optional() },
+  async (args) => apiResult(await api('POST', '/api/visual-requests', args))
+);
+
+server.tool('update_visual_request', 'Update an existing visual request',
+  { id: z.number(), title: z.string().optional(), description: z.string().optional(), requesting_agent: z.string().optional(), associated_post_id: z.number().optional(), deadline: z.string().optional(), department: z.string().optional(), reference_specs: z.string().optional() },
+  async ({ id, ...body }) => apiResult(await api('PATCH', `/api/visual-requests/${id}`, body))
+);
+
+server.tool('visual_request_set_status', 'Change visual request status',
+  { id: z.number(), status: z.enum(['pending', 'in_progress', 'changes_requested']).describe('New status'), sender: z.string().optional() },
+  async ({ id, ...body }) => apiResult(await api('PATCH', `/api/visual-requests/${id}/status`, body))
+);
+
+server.tool('visual_request_done', 'Mark visual request as done with deliverable',
+  { id: z.number(), drive_url: z.string().describe('Google Drive URL of deliverable'), drive_file_id: z.string().optional().describe('Google Drive file ID') },
+  async ({ id, ...body }) => apiResult(await api('PATCH', `/api/visual-requests/${id}/done`, body))
+);
+
+server.tool('get_visual_request_messages', 'Get chat thread for a visual request',
+  { id: z.number().describe('Visual request ID') },
+  async ({ id }) => apiResult(await api('GET', `/api/visual-requests/${id}/messages`))
+);
+
+server.tool('add_visual_request_message', 'Add a message to a visual request thread',
+  { id: z.number().describe('Visual request ID'), sender: z.string(), message: z.string() },
+  async ({ id, sender, message }) => apiResult(await api('POST', `/api/visual-requests/${id}/messages`, { sender, message }))
+);
+
+// ─── RESEARCH REQUESTS ─────────────────────────────────────────
+
+server.tool('list_research_requests', 'List research requests with optional status/priority filter',
+  { status: z.string().optional().describe('Filter by status'), priority: z.string().optional().describe('Filter by priority (urgent/high/normal)') },
+  async ({ status, priority }) => {
+    let url = '/api/research-requests';
+    const params = [];
+    if (status) params.push(`status=${status}`);
+    if (priority) params.push(`priority=${priority}`);
+    if (params.length) url += '?' + params.join('&');
+    return apiResult(await api('GET', url));
+  }
+);
+
+server.tool('get_research_request', 'Get a single research request by ID',
+  { id: z.number().describe('Research request ID') },
+  async ({ id }) => apiResult(await api('GET', `/api/research-requests/${id}`))
+);
+
+server.tool('create_research_request', 'Create a new research request',
+  { title: z.string(), description: z.string(), context: z.string().optional(), requesting_agent: z.string().optional(), priority: z.enum(['urgent', 'high', 'normal']).optional(), deadline: z.string().optional() },
+  async (args) => apiResult(await api('POST', '/api/research-requests', args))
+);
+
+server.tool('update_research_request', 'Update an existing research request',
+  { id: z.number(), title: z.string().optional(), description: z.string().optional(), context: z.string().optional(), requesting_agent: z.string().optional(), priority: z.enum(['urgent', 'high', 'normal']).optional(), deadline: z.string().optional(), department: z.string().optional() },
+  async ({ id, ...body }) => apiResult(await api('PATCH', `/api/research-requests/${id}`, body))
+);
+
+server.tool('research_request_set_status', 'Change research request status',
+  { id: z.number(), status: z.string().describe('New status'), sender: z.string().optional() },
+  async ({ id, ...body }) => apiResult(await api('PATCH', `/api/research-requests/${id}/status`, body))
+);
+
+server.tool('research_request_done', 'Mark research request as done with deliverable',
+  { id: z.number(), drive_url: z.string().describe('Google Drive URL of deliverable'), drive_file_id: z.string().optional().describe('Google Drive file ID') },
+  async ({ id, ...body }) => apiResult(await api('PATCH', `/api/research-requests/${id}/done`, body))
+);
+
+server.tool('get_research_request_messages', 'Get chat thread for a research request',
+  { id: z.number().describe('Research request ID') },
+  async ({ id }) => apiResult(await api('GET', `/api/research-requests/${id}/messages`))
+);
+
+server.tool('add_research_request_message', 'Add a message to a research request thread',
+  { id: z.number().describe('Research request ID'), sender: z.string(), message: z.string() },
+  async ({ id, sender, message }) => apiResult(await api('POST', `/api/research-requests/${id}/messages`, { sender, message }))
 );
 
 // ─── RESOURCES ──────────────────────────────────────────────────

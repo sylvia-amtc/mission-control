@@ -5,11 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Amtecco Mission Control</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 <style>
   /* ═══ Amtecco Brand Guide ═══ */
   :root {
@@ -149,6 +146,7 @@
   .form-label { font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 4px; font-weight: 500; }
 
   /* ═══ Mobile Responsive ═══ */
+  html, body { height: 100%; max-height: 100vh; overflow-x: hidden; }
   .mobile-menu-btn { display: none; position: fixed; top: 12px; left: 12px; z-index: 30; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: white; cursor: pointer; font-size: 16px; }
   
   @media (max-width: 1024px) {
@@ -157,10 +155,13 @@
     .lg\:grid-cols-3 { grid-template-columns: repeat(2, 1fr) !important; }
   }
   @media (max-width: 768px) {
-    aside { display: none; position: fixed; top: 0; left: 0; bottom: 0; width: 260px; }
-    aside.mobile-open { display: flex !important; z-index: 25; }
-    main { margin-left: 0 !important; padding: 16px !important; padding-top: 52px !important; }
+    html, body { height: 100vh; max-height: 100vh; overflow: hidden; }
+    aside { display: none; position: fixed; top: 0; left: 0; bottom: 0; width: 260px; height: 100vh; transform: translateX(-100%); transition: transform 0.3s ease; }
+    aside.mobile-open { display: flex !important; transform: translateX(0); z-index: 25; }
+    main { margin-left: 0 !important; padding: 16px !important; padding-top: 52px !important; height: 100vh; overflow-y: auto; }
     .mobile-menu-btn { display: block !important; }
+    .mobile-menu-btn::before { content: "☰"; }
+    .mobile-menu-btn.open::before { content: "✕"; }
     .grid-cols-4, .grid-cols-2 { grid-template-columns: 1fr !important; }
     .md\:grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; }
     .gantt-label { width: 120px !important; min-width: 120px !important; font-size: 10px !important; }
@@ -174,14 +175,167 @@
     .md\:grid-cols-4 { grid-template-columns: 1fr !important; }
     .card { padding: 12px; }
   }
-</style>
-</head>
-<body class="min-h-screen">
 
-<button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
-<div class="flex min-h-screen">
+  /* ═══ Additional Mobile Fixes (≥768px & ≤1024px) ═══ */
+  @media (max-width: 1024px) {
+    /* Kanban: reduce columns */
+    #sec-kanban .grid.grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; }
+    /* Gantt summary: 2 columns */
+    .tl-summary { grid-template-columns: repeat(2, 1fr) !important; }
+    /* Pipeline stats */
+    #pipeline-stats { grid-template-columns: repeat(2, 1fr) !important; }
+    /* Funnel grid */
+    #sec-funnel .grid { grid-template-columns: 1fr !important; }
+    /* Vendor summary cards */
+    #vendor-summary-cards { grid-template-columns: repeat(2, 1fr) !important; }
+    /* KPI sparkline grid */
+    #kpi-sparkline-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  }
+
+  @media (max-width: 768px) {
+    /* Kanban: single column on mobile */
+    #sec-kanban .grid.grid-cols-4, 
+    #sec-kanban .grid { grid-template-columns: 1fr !important; }
+    
+    /* Gantt timeline - hide toolbar extras, reduce padding */
+    .tl-toolbar { gap: 4px !important; }
+    .tl-search { width: 120px !important; }
+    .tl-gantt-scroll { max-height: calc(100vh - 400px) !important; }
+    
+    /* Pipeline board - horizontal scroll for cards */
+    #pipeline-board { overflow-x: auto; padding-bottom: 8px; }
+    .pipeline-col { min-width: 280px !important; flex-shrink: 0; }
+    
+    /* Actions table - horizontal scroll */
+    #action-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .action-table { min-width: 600px; }
+    
+    /* Action detail panel - full width */
+    .action-detail-panel { width: 100% !important; max-width: 100% !important; }
+    
+    /* Calendar - adjust cell height */
+    .cal-cell { min-height: 80px !important; padding: 4px !important; }
+    .cal-post { font-size: 10px !important; padding: 2px 4px !important; }
+    
+    /* Org chart - stack cards */
+    .org-level { flex-direction: column !important; align-items: center !important; gap: 8px !important; }
+    .org-card { width: 100% !important; max-width: 100% !important; }
+    
+    /* Vendors table - horizontal scroll */
+    .card .overflow-x-auto { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    #vendors-table-body { min-width: 800px; }
+    
+    /* Department table - horizontal scroll */
+    #sec-command table { min-width: 600px; }
+    
+    /* KPIs table */
+    #sec-kpis table { min-width: 500px; }
+    
+    /* Filter row - stack filters */
+    .filter-row { flex-wrap: wrap !important; gap: 6px !important; }
+    .filter-dropdown { flex: 1 1 auto !important; min-width: 100px; }
+    .filter-search-wrap { flex: 1 1 100% !important; order: 10; }
+    
+    /* Stat cards */
+    #stat-cards { grid-template-columns: repeat(2, 1fr) !important; }
+    
+    /* Calendar header */
+    #cal-header .cal-day-label { font-size: 9px !important; padding: 4px 0 !important; }
+    #cal-summary { grid-template-columns: repeat(3, 1fr) !important; }
+    
+    /* VR/RR cards grid */
+    #vr-list, #rr-list { grid-template-columns: 1fr !important; }
+    
+    /* Modal content - adjust max-width */
+    .modal-content, .post-detail-panel { max-width: 95vw !important; margin: 8px !important; }
+    
+    /* Button sizes - ensure min 44px touch target */
+    .btn-primary, .btn-secondary, .btn-ghost { min-height: 44px; min-width: 44px; padding: 10px 16px; }
+    
+    /* Form inputs - larger touch target */
+    .form-input { min-height: 44px; padding: 10px 12px; }
+    
+    /* Sync grid */
+    #sync-grid { grid-template-columns: 1fr !important; }
+    
+    /* Priorities/Initiatives grid */
+    #priorities-list, #initiatives-list { grid-template-columns: 1fr !important; }
+    
+    /* Revenue grid */
+    #revenue-grid { grid-template-columns: 1fr !important; }
+    
+    /* Funnel visualization */
+    .funnel-stage { margin-bottom: 8px !important; }
+    
+    /* Report viewer */
+    .report-content { font-size: 12px !important; }
+  }
+
+  /* Extra small screens (≤480px) */
+  @media (max-width: 480px) {
+    /* Kanban - single column, larger cards */
+    #sec-kanban .grid.grid-cols-4 { grid-template-columns: 1fr !important; }
+    .kanban-card { padding: 16px !important; }
+    
+    /* Gantt summary - single column */
+    .tl-summary { grid-template-columns: 1fr !important; }
+    
+    /* Stat cards - full width */
+    #stat-cards { grid-template-columns: 1fr !important; }
+    
+    /* Pipeline stats */
+    #pipeline-stats { grid-template-columns: 1fr !important; }
+    
+    /* Calendar cells */
+    .cal-cell { min-height: 60px !important; }
+    .cal-day-num { font-size: 10px !important; }
+    
+    /* Header title */
+    h2 { font-size: 1.1rem !important; }
+    
+    /* Filter row */
+    .filter-row { padding: 6px 8px !important; }
+    
+    /* Modal buttons */
+    .modal-footer { flex-direction: column !important; }
+    .modal-footer button { width: 100% !important; margin-bottom: 8px !important; }
+    
+    /* Action detail panel */
+    .panel-thread { padding: 12px !important; }
+    .chat-bubble { max-width: 95% !important; padding: 8px 10px !important; font-size: 12px !important; }
+    
+    /* Vendors */
+    #vendor-summary-cards { grid-template-columns: 1fr !important; }
+    
+    /* KPI sparklines */
+    #kpi-sparkline-grid { grid-template-columns: 1fr !important; }
+    
+    /* Org summary bar */
+    .org-summary-bar { padding: 12px !important; gap: 12px !important; }
+    .org-summary-stat .num { font-size: 18px !important; }
+  }
+
+  /* Touch-friendly improvements */
+  @media (hover: none) and (pointer: coarse) {
+    /* Larger tap targets for touch */
+    .nav-item { padding: 12px 20px !important; }
+    .kanban-card { cursor: pointer; }
+    .deal-card { cursor: pointer; }
+    .vr-card, .rr-card { cursor: pointer; }
+    .org-card { cursor: pointer; }
+    
+    /* Prevent zoom on input focus (iOS) */
+    input, select, textarea { font-size: 16px !important; }
+  }
+</style>
+<link rel="stylesheet" href="mc-scifi-all.css">
+</head>
+<body class="h-screen" style="height: 100vh; max-height: 100vh; overflow: hidden;">
+
+<button class="mobile-menu-btn" onclick="toggleMobileMenu()"></button>
+<div class="flex" style="height: 100vh; max-height: 100vh; overflow: hidden;">
   <!-- Sidebar -->
-  <aside id="sidebar" class="w-60 bg-[#12141f] border-r border-[#2d3148] flex flex-col shrink-0 fixed h-full z-20">
+  <aside id="sidebar" class="sidebar w-60 bg-[#12141f] border-r border-[#2d3148] flex flex-col shrink-0 fixed h-full z-20">
     <div class="p-5 border-b border-[#2d3148]">
       <h1 class="text-lg font-bold text-white flex items-center gap-2">🎯 Mission Control</h1>
       <p class="text-xs text-[#64748b] mt-1">Amtecco Operations v2</p>
@@ -846,6 +1000,15 @@
         .li-preview .li-headline { color: rgba(255,255,255,0.6); font-size: 12px; }
         .li-preview .li-content { color: rgba(255,255,255,0.85); font-size: 14px; line-height: 1.5; margin-top: 12px; white-space: pre-wrap; }
         .li-preview .li-hashtag { color: #70B5F9; }
+        .x-preview .x-media { margin-top: 12px; border-radius: 12px; overflow: hidden; }
+        .x-preview .x-media img, .x-preview .x-media video { width: 100%; max-height: 300px; object-fit: cover; }
+        .li-preview .li-media { margin-top: 12px; border-radius: 8px; overflow: hidden; }
+        .li-preview .li-media img, .li-preview .li-media video { width: 100%; max-height: 400px; object-fit: cover; }
+        .li-preview .li-media-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-top: 12px; }
+        .li-preview .li-media-grid img, .li-preview .li-media-grid video { width: 100%; height: 200px; object-fit: cover; border-radius: 4px; }
+        .video-play-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .video-play-btn::after { content: '▶'; font-size: 24px; color: white; margin-left: 4px; }
+        .media-wrapper { position: relative; }
         .post-chat-bubble { max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; word-wrap: break-word; }
         .post-chat-bubble.david { background: #1E3A5F; border-bottom-left-radius: 4px; margin-right: auto; }
         .post-chat-bubble.max { background: #2D1F4E; border-bottom-right-radius: 4px; margin-left: auto; }
@@ -944,6 +1107,10 @@
               <label class="form-label">Hashtags</label>
               <input type="text" id="post-hashtags" class="form-input" placeholder="#amtecco #cdn">
             </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Media URLs (one per line)</label>
+            <textarea id="post-media-urls" class="form-input" style="height:60px;" placeholder="https://example.com/image.jpg&#10;https://example.com/video.mp4"></textarea>
           </div>
           <div class="flex justify-end gap-2">
             <button type="button" onclick="closeNewPostModal()" class="btn-ghost text-sm">Cancel</button>
@@ -1576,7 +1743,7 @@
 
 <script>
 // ═══ State ═══
-let DATA={}, TASKS=[], ACTIONS=[], STATS={}, KPIS=[], GANTT={tasks:[],milestones:[]}, PIPELINE={};
+let DATA={}, TASKS=[], ACTIONS=[], STATS={}, KPIS=[], GANTT={tasks:[],milestones:[]}, PIPELINE={}, BLOCKERS=[];
 let currentBlockerFilter='all', selectedKPIDept='', pipelineView='board';
 
 // ═══ WebSocket (live updates) ═══
@@ -1586,21 +1753,30 @@ function connectWS() {
   ws = new WebSocket(`${proto}://${location.host}`);
   ws.onopen = () => { document.getElementById('ws-status').innerHTML = '<span class="status-icon bg-green-500 pulse inline-block mr-1"></span> Live'; };
   ws.onclose = () => { document.getElementById('ws-status').innerHTML = '<span class="status-icon bg-red-500 inline-block mr-1"></span> Disconnected'; setTimeout(connectWS, 3000); };
+  ws.onerror = (err) => { console.error('WebSocket error:', err); };
   ws.onmessage = (e) => {
-    const msg = JSON.parse(e.data);
-    if (msg.type.startsWith('task')) loadTasks();
-    if (msg.type.startsWith('action')) { loadActionCounts(); refreshActionItemsInPlace(); if (panelActionId) refreshExpandedThread(panelActionId); }
-    if (msg.type.startsWith('deal') || msg.type.startsWith('crm')) loadPipeline();
-    if (msg.type.startsWith('post')) loadCalendar();
-    if (msg.type.startsWith('visual_request')) { if (!document.getElementById('sec-visual-requests').classList.contains('hidden')) loadVisualRequests(); if (vrDetailId) openVRDetail(vrDetailId); }
-    if (msg.type.startsWith('research_request')) { if (!document.getElementById('sec-research-requests').classList.contains('hidden')) loadResearchRequests(); if (rrDetailId) openRRDetail(rrDetailId); }
-    if (msg.type.startsWith('agent')) { if (!document.getElementById('sec-org').classList.contains('hidden')) loadOrgData(); }
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type.startsWith('task')) loadTasks();
+      if (msg.type.startsWith('action')) { loadActionCounts(); refreshActionItemsInPlace(); if (panelActionId) refreshExpandedThread(panelActionId); }
+      if (msg.type.startsWith('deal') || msg.type.startsWith('crm')) loadPipeline();
+      if (msg.type.startsWith('post')) loadCalendar();
+      if (msg.type.startsWith('visual_request')) { if (!document.getElementById('sec-visual-requests').classList.contains('hidden')) loadVisualRequests(); if (vrDetailId) openVRDetail(vrDetailId); }
+      if (msg.type.startsWith('research_request')) { if (!document.getElementById('sec-research-requests').classList.contains('hidden')) loadResearchRequests(); if (rrDetailId) openRRDetail(rrDetailId); }
+      if (msg.type.startsWith('agent')) { const sec = document.getElementById('sec-org'); if (sec && !sec.classList.contains('hidden')) loadOrgData(); }
+    } catch (err) { console.error('WebSocket message error:', err); }
   };
 }
 connectWS();
 
 // ═══ API helper ═══
-async function api(url, opts) { const r = await fetch(url, { headers: {'Content-Type':'application/json'}, ...opts }); return r.json(); }
+async function api(url, opts) { 
+  // Add cache-busting query param to ensure fresh data
+  const separator = url.includes('?') ? '&' : '?';
+  const cacheBuster = `${separator}_t=${Date.now()}`;
+  const r = await fetch(url + cacheBuster, { headers: {'Content-Type':'application/json'}, ...opts }); 
+  return r.json(); 
+}
 
 // ═══ Load all data ═══
 async function loadAll() {
@@ -1613,6 +1789,7 @@ async function loadAll() {
   render();
 }
 async function loadTasks() { TASKS = await api('/api/tasks'); STATS = await api('/api/stats'); GANTT = await api('/api/gantt'); renderKanban(); renderCommandCenter(); renderGantt(); }
+async function loadBlockers() { BLOCKERS = await api('/api/blockers'); renderBlockers(); }
 async function loadActionsLegacy() { try { const data = await api('/api/actions?limit=999'); ACTIONS = data.items || data; } catch(e) { ACTIONS = []; } STATS = await api('/api/stats'); renderActions(); renderCommandCenter(); }
 async function loadPipeline() { 
   try { 
@@ -1674,13 +1851,94 @@ function fmtMoney(v){if(v>=1e6)return'$'+(v/1e6).toFixed(1)+'M';if(v>=1e3)return
 const stageLabels={lead:'Leads',qualified:'Qualified',opportunity:'Opportunity',proposal:'Proposal',closed_won:'Closed Won',closed_lost:'Closed Lost'};
 const stageColors={lead:'#3b82f6',qualified:'#06b6d4',opportunity:'#8b5cf6',proposal:'#eab308',closed_won:'#22c55e',closed_lost:'#ef4444'};
 
-function toggleMobileMenu(){document.getElementById('sidebar').classList.toggle('mobile-open');}
+// ═══ Mobile Sidebar ═══
+function isMobile() {
+  return window.innerWidth <= 768;
+}
+
+function toggleMobileMenu() {
+  const sidebar = document.getElementById('sidebar');
+  const btn = document.querySelector('.mobile-menu-btn');
+  const isOpen = sidebar.classList.contains('mobile-open');
+  
+  if (isOpen) {
+    sidebar.classList.remove('mobile-open');
+    btn.classList.remove('open');
+    // Persist closed state for mobile
+    if (isMobile()) {
+      localStorage.setItem('mc-sidebar-mobile', 'closed');
+    }
+  } else {
+    sidebar.classList.add('mobile-open');
+    btn.classList.add('open');
+    // Persist open state for mobile
+    if (isMobile()) {
+      localStorage.setItem('mc-sidebar-mobile', 'open');
+    }
+  }
+}
+
+function initMobileSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const btn = document.querySelector('.mobile-menu-btn');
+  
+  if (isMobile()) {
+    // On mobile, ensure sidebar starts closed by default
+    // Check localStorage first
+    const storedState = localStorage.getItem('mc-sidebar-mobile');
+    
+    if (storedState === 'open') {
+      sidebar.classList.add('mobile-open');
+      btn.classList.add('open');
+    } else {
+      // Default to closed on mobile - ensure classes are NOT present
+      sidebar.classList.remove('mobile-open');
+      btn.classList.remove('open');
+      // Explicitly set localStorage to closed for first-time visitors
+      localStorage.setItem('mc-sidebar-mobile', 'closed');
+    }
+  } else {
+    // On desktop, ensure sidebar is always visible
+    sidebar.classList.remove('mobile-open');
+    btn.classList.remove('open');
+  }
+}
+
+// Initialize sidebar state on page load
+document.addEventListener('DOMContentLoaded', initMobileSidebar);
+
+// Also handle window resize to ensure proper state
+window.addEventListener('resize', function() {
+  const sidebar = document.getElementById('sidebar');
+  const btn = document.querySelector('.mobile-menu-btn');
+  
+  if (!isMobile()) {
+    // On desktop, always show sidebar and remove mobile state
+    sidebar.classList.remove('mobile-open');
+    btn.classList.remove('open');
+    localStorage.removeItem('mc-sidebar-mobile');
+  }
+});
 
 // ═══ Render all ═══
 function render() {
   document.getElementById('update-time').textContent=`Updated: ${DATA.lastUpdated||'Unknown'}`;
-  renderCommandCenter();renderKanban();renderGantt();renderDepartments();renderKPIs();renderActions();loadActionCounts();loadActionItems();
-  renderPriorities();renderInitiatives();renderReporting();renderRevenue();renderFunnel();renderReports();renderPipeline();renderCommandPipeline();
+  try { renderCommandCenter(); } catch(e) { console.error('renderCommandCenter:', e); }
+  try { renderKanban(); } catch(e) { console.error('renderKanban:', e); }
+  try { renderGantt(); } catch(e) { console.error('renderGantt:', e); }
+  try { renderDepartments(); } catch(e) { console.error('renderDepartments:', e); }
+  try { renderKPIs(); } catch(e) { console.error('renderKPIs:', e); }
+  try { renderActions(); } catch(e) { console.error('renderActions:', e); }
+  try { loadActionCounts(); } catch(e) { console.error('loadActionCounts:', e); }
+  try { loadActionItems(); } catch(e) { console.error('loadActionItems:', e); }
+  try { renderPriorities(); } catch(e) { console.error('renderPriorities:', e); }
+  try { renderInitiatives(); } catch(e) { console.error('renderInitiatives:', e); }
+  try { renderReporting(); } catch(e) { console.error('renderReporting:', e); }
+  try { renderRevenue(); } catch(e) { console.error('renderRevenue:', e); }
+  try { renderFunnel(); } catch(e) { console.error('renderFunnel:', e); }
+  try { renderReports(); } catch(e) { console.error('renderReports:', e); }
+  try { renderPipeline(); } catch(e) { console.error('renderPipeline:', e); }
+  try { renderCommandPipeline(); } catch(e) { console.error('renderCommandPipeline:', e); }
 }
 
 // ═══ Command Center ═══
@@ -1853,7 +2111,14 @@ function renderPipeline(){
   const cs=p.crossSell||[];
   document.getElementById('cross-sell-list').innerHTML=cs.length===0
     ?'<p class="text-sm text-[#64748b]">No cross-sell opportunities detected</p>'
-    :`<table class="w-full text-sm"><thead><tr class="border-b border-[#2d3148]"><th class="text-left px-4 py-2">Company</th><th class="text-left px-4 py-2">Products</th><th class="text-left px-4 py-2">Value</th></tr></thead><tbody>${cs.map(c=>`<tr><td class="px-4 py-2 font-medium">${c.company}</td><td class="px-4 py-2">${c.products.map(p=>`<span class="inline-block text-xs px-2 py-0.5 rounded bg-[#252a40] text-[#94a3b8] mr-1 mb-1">${p}</span>`).join('')}</td><td class="px-4 py-2 text-[#22c55e] font-bold">${fmtMoney(c.value)}</td></tr>`).join('')}</tbody></table>`;
+    :`<table class="w-full text-sm"><thead><tr class="border-b border-[#2d3148]"><th class="text-left px-4 py-2">Company</th><th class="text-left px-4 py-2">Products</th><th class="text-left px-4 py-2">Value</th></tr></thead><tbody>${cs.map(c=>{
+      let products = c.products;
+      if (typeof products === 'string') {
+        try { products = JSON.parse(products); } catch(e) { products = products.split(','); }
+      }
+      if (!Array.isArray(products)) products = [];
+      return `<tr><td class="px-4 py-2 font-medium">${c.company}</td><td class="px-4 py-2">${products.map(p=>`<span class="inline-block text-xs px-2 py-0.5 rounded bg-[#252a40] text-[#94a3b8] mr-1 mb-1">${p}</span>`).join('')}</td><td class="px-4 py-2 text-[#22c55e] font-bold">${fmtMoney(c.value)}</td></tr>`;
+    }).join('')}</tbody></table>`;
 }
 
 function renderPipelineBoard(stages){
@@ -3188,13 +3453,68 @@ async function confirmDefer(){
 }
 
 // Blockers
+function renderBlockers(){
+  // Filter blockers by current filter
+  let filtered = BLOCKERS;
+  if(currentBlockerFilter === 'open') {
+    filtered = filtered.filter(b => b.status !== 'done');
+  } else if(currentBlockerFilter === 'red') {
+    filtered = filtered.filter(b => b.priority === 'critical');
+  } else if(currentBlockerFilter === 'yellow') {
+    filtered = filtered.filter(b => b.priority === 'high');
+  } else if(currentBlockerFilter === 'blue') {
+    filtered = filtered.filter(b => b.priority === 'medium');
+  }
+  
+  const container = document.getElementById('actions-list');
+  if(!container) return;
+  
+  if(filtered.length === 0) {
+    container.innerHTML = '<div class="card p-5 text-center text-[#64748b]">No blockers match this filter</div>';
+    return;
+  }
+  
+  container.innerHTML = filtered.map(b => {
+    const priorityColors = { critical: 'red', high: 'yellow', medium: 'blue', low: 'gray' };
+    const color = priorityColors[b.priority] || 'gray';
+    const daysOld = b.created_at ? Math.floor((Date.now() - new Date(b.created_at)) / (1000*60*60*24)) : 0;
+    return `<div class="card p-4 severity-${color} ${b.status === 'done' ? 'opacity-50' : ''}">
+      <div class="flex justify-between items-start">
+        <div>
+          <div class="font-medium text-sm">${b.title}</div>
+          <div class="text-xs text-[#64748b] mt-1">Owner: ${b.owner || 'Unassigned'} · Dept: ${b.department} · ${daysOld} days ago</div>
+          ${b.blocker_note ? `<div class="text-xs text-[#94a3b8] mt-2 italic">"${b.blocker_note}"</div>` : ''}
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <span class="text-xs px-2 py-0.5 rounded ${b.status !== 'done' ? 'bg-red-900/50 text-red-300' : 'bg-green-900/50 text-green-300'}">${b.status}</span>
+          ${b.status !== 'done' ? `<button onclick="resolveBlocker(${b.id})" class="btn-primary text-xs px-3 py-1">✓ Resolve</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function resolveBlocker(id) {
+  // Mark blocker task as done
+  try {
+    await api(`/api/tasks/${id}`, { method: 'PUT', body: JSON.stringify({ status: 'done' }) });
+    loadBlockers();
+    loadTasks(); // Refresh tasks/kanban
+    STATS = await api('/api/stats'); // Refresh stats
+    renderCommandCenter();
+  } catch(e) {
+    console.error('Failed to resolve blocker:', e);
+  }
+}
+
 function renderActions(){
   let filtered=ACTIONS;
   if(currentBlockerFilter==='open')filtered=filtered.filter(a=>a.status==='open');
   else if(['red','yellow','blue'].includes(currentBlockerFilter))filtered=filtered.filter(a=>a.severity===currentBlockerFilter);
   document.getElementById('actions-list').innerHTML=filtered.length===0?'<div class="card p-5 text-center text-[#64748b]">No items match this filter</div>':filtered.map(a=>`<div class="card p-4 severity-${a.severity} ${a.status==='resolved'?'opacity-50':''}"><div class="flex justify-between items-start"><div><div class="font-medium text-sm">${a.title}</div><div class="text-xs text-[#64748b] mt-1">Owner: ${a.owner} · ${a.opened_date} (${daysAgo(a.opened_date)})</div></div><div class="flex items-center gap-2 shrink-0"><span class="text-xs px-2 py-0.5 rounded ${a.status==='open'?'bg-red-900/50 text-red-300':'bg-green-900/50 text-green-300'}">${a.status}</span>${a.status==='open'?`<button onclick="resolveAction(${a.id})" class="btn-primary text-xs px-3 py-1">✓ Resolve</button>`:''}</div></div></div>`).join('');
 }
-document.querySelectorAll('.blocker-filter').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.blocker-filter').forEach(b=>b.className='text-xs px-3 py-1.5 rounded-full tab-inactive blocker-filter');btn.className='text-xs px-3 py-1.5 rounded-full tab-active blocker-filter';currentBlockerFilter=btn.dataset.filter;renderActions();});});
+// Blocker filter click handler - uses renderBlockers for blockers page, renderActions for actions page
+document.querySelectorAll('.blocker-filter').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.blocker-filter').forEach(b=>b.className='text-xs px-3 py-1.5 rounded-full tab-inactive blocker-filter');btn.className='text-xs px-3 py-1.5 rounded-full tab-active blocker-filter';currentBlockerFilter=btn.dataset.filter;const blockersSection=document.getElementById('sec-blockers');if(blockersSection&&!blockersSection.classList.contains('hidden')){renderBlockers();}else{renderActions();}});});
 async function resolveAction(id){quickResolve(id,'');}
 
 // ═══ Sales Funnel (legacy from markdown) ═══
@@ -3951,8 +4271,58 @@ async function wakeAgent(agentId, name) {
   document.getElementById('wake-msg').value = '';
 }
 
-// Auto-refresh org data every 15s
-setInterval(() => { if (!document.getElementById('sec-org').classList.contains('hidden')) loadOrgData(); }, 15000);
+// Auto-refresh org data every 5s for near real-time updates (reduced from 15s)
+document.addEventListener('DOMContentLoaded', () => {
+  setInterval(() => { 
+    const sec = document.getElementById('sec-org');
+    if (sec && !sec.classList.contains('hidden')) loadOrgData(); 
+  }, 5000);
+
+  // Watch for org section visibility changes to reload data when becoming visible
+  const orgSection = document.getElementById('sec-org');
+  if (orgSection) {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          if (!orgSection.classList.contains('hidden')) {
+            loadOrgData(); // Reload when org section becomes visible
+          }
+        }
+      });
+    });
+    observer.observe(orgSection, { attributes: true });
+  }
+
+  // Watch for blockers section visibility changes to reload data when becoming visible
+  const blockersSection = document.getElementById('sec-blockers');
+  if (blockersSection) {
+    const blockersObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          if (!blockersSection.classList.contains('hidden')) {
+            loadBlockers(); // Reload when blockers section becomes visible
+          }
+        }
+      });
+    });
+    blockersObserver.observe(blockersSection, { attributes: true });
+  }
+
+  // Watch for kanban section visibility changes to reload data when becoming visible
+  const kanbanSection = document.getElementById('sec-kanban');
+  if (kanbanSection) {
+    const kanbanObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          if (!kanbanSection.classList.contains('hidden')) {
+            loadTasks(); // Reload when kanban section becomes visible
+          }
+        }
+      });
+    });
+    kanbanObserver.observe(kanbanSection, { attributes: true });
+  }
+});
 
 // ═══ URL-Based Router Infrastructure ═══
 
@@ -4024,6 +4394,8 @@ function navigateToRoute(path, pushState = true) {
     loadFiltersFromURL();
     loadVendors();
   }
+  if (section === 'blockers') loadBlockers();
+  if (section === 'kanban') loadTasks();
   
   // Parse query parameters for actions page
   if (section === 'actions' && !actionId) {
@@ -4061,6 +4433,9 @@ function navigateToRoute(path, pushState = true) {
   
   // Close mobile menu
   document.getElementById('sidebar').classList.remove('mobile-open');
+  
+  // Ensure content is rendered
+  render();
 }
 
 // Handle browser back/forward buttons
@@ -4109,6 +4484,13 @@ document.querySelectorAll('.nav-item').forEach(n => {
   n.addEventListener('click', e => {
     e.preventDefault();
     const route = n.getAttribute('href');
+    // Close mobile sidebar when nav item clicked
+    if (isMobile()) {
+      const sidebar = document.getElementById('sidebar');
+      const btn = document.querySelector('.mobile-menu-btn');
+      sidebar.classList.remove('mobile-open');
+      btn.classList.remove('open');
+    }
     navigateToRoute(route);
   });
 });
@@ -4153,8 +4535,8 @@ function checkHashNavigation() {
 async function incrementalRefresh() {
   try {
     // Fetch fresh data in parallel
-    const [newData, newStats, newKpis, newGantt, newCounts] = await Promise.all([
-      api('/api/data'), api('/api/stats'), api('/api/kpis'), api('/api/gantt'), api('/api/actions/counts')
+    const [newData, newStats, newKpis, newGantt, newCounts, newBlockers, newTasks] = await Promise.all([
+      api('/api/data'), api('/api/stats'), api('/api/kpis'), api('/api/gantt'), api('/api/actions/counts'), api('/api/blockers'), api('/api/tasks')
     ]);
 
     // Update global state
@@ -4163,6 +4545,8 @@ async function incrementalRefresh() {
     KPIS = newKpis;
     GANTT = newGantt;
     actionCounts = newCounts;
+    BLOCKERS = newBlockers;
+    TASKS = newTasks;
 
     // Update non-action sections (these don't have input fields)
     document.getElementById('update-time').textContent = `Updated: ${DATA.lastUpdated || 'Unknown'}`;
@@ -4176,6 +4560,12 @@ async function incrementalRefresh() {
 
     // Update action items in-place (without destroying DOM)
     refreshActionItemsInPlace();
+
+    // Refresh blockers if section is visible
+    const blockersSection = document.getElementById('sec-blockers');
+    if (blockersSection && !blockersSection.classList.contains('hidden')) {
+      renderBlockers();
+    }
 
     // Refresh pipeline
     loadPipeline();
@@ -4382,6 +4772,25 @@ async function openPostDetail(id) {
   const contentWithHashtags = (post.content || '').replace(/#(\w+)/g, '<span class="${ post.platform === "x" ? "x-hashtag" : "li-hashtag" }">#$1</span>');
   
   let previewHtml = '';
+  let mediaHtml = '';
+  try {
+    let mediaUrls = JSON.parse(post.media_urls || '[]');
+    // Handle double-encoded strings (if somehow stored as stringified string)
+    if (typeof mediaUrls === 'string') {
+      try { mediaUrls = JSON.parse(mediaUrls); } catch(e2) { mediaUrls = []; }
+    }
+    if (mediaUrls.length) {
+      mediaHtml = mediaUrls.map(url => {
+        const isVideo = url.match(/\.(mp4|webm|mov)$/i);
+        if (isVideo) {
+          return `<div class="media-wrapper"><video src="${url}" controls preload="metadata" style="width:100%;max-height:300px;object-fit:cover;border-radius:12px;background:#000;"></video></div>`;
+        } else {
+          return `<img src="${url}" alt="Post media" style="width:100%;max-height:300px;object-fit:cover;border-radius:12px;" />`;
+        }
+      }).join('');
+    }
+  } catch(e) { mediaHtml = ''; }
+  
   if (post.platform === 'x') {
     const text = (post.content || '').replace(/</g,'&lt;').replace(/#(\w+)/g, '<span class="x-hashtag">#$1</span>');
     previewHtml = `<div class="x-preview">
@@ -4390,6 +4799,7 @@ async function openPostDetail(id) {
         <div class="flex-1">
           <div class="flex items-center gap-2"><span class="x-name">Amtecco</span><span class="x-handle">@amtecco</span></div>
           <div class="x-content">${text}</div>
+          ${mediaHtml ? `<div class="x-media">${mediaHtml}</div>` : ''}
         </div>
       </div>
     </div>`;
@@ -4404,6 +4814,7 @@ async function openPostDetail(id) {
           <div class="li-headline">${isCompany ? 'Media Technology & CDN Solutions' : 'CEO at Amtecco'}</div>
         </div>
       </div>
+      ${mediaHtml ? `<div class="li-media">${mediaHtml}</div>` : ''}
       <div class="li-content">${text}</div>
     </div>`;
   }
@@ -4511,6 +4922,11 @@ function openNewPostModal(post) {
   document.getElementById('post-status-input').value = post ? post.status : 'draft';
   document.getElementById('post-scheduled').value = post && post.scheduled_at ? post.scheduled_at.replace(' ', 'T').substring(0, 16) : '';
   document.getElementById('post-hashtags').value = post ? post.hashtags : '';
+  let mediaUrlsStr = '';
+  if (post && post.media_urls) {
+    try { mediaUrlsStr = JSON.parse(post.media_urls).join('\n'); } catch(e) { mediaUrlsStr = post.media_urls; }
+  }
+  document.getElementById('post-media-urls').value = mediaUrlsStr;
 }
 function closeNewPostModal() { document.getElementById('new-post-modal').classList.add('hidden'); }
 
@@ -4522,6 +4938,8 @@ function editPostFromDetail(id) {
 async function submitPost(e) {
   e.preventDefault();
   const id = document.getElementById('post-edit-id').value;
+  const mediaUrlsText = document.getElementById('post-media-urls').value;
+  const mediaUrls = mediaUrlsText ? mediaUrlsText.split('\n').map(u => u.trim()).filter(u => u) : [];
   const data = {
     title: document.getElementById('post-title').value,
     content: document.getElementById('post-content').value,
@@ -4529,6 +4947,7 @@ async function submitPost(e) {
     status: document.getElementById('post-status-input').value,
     scheduled_at: document.getElementById('post-scheduled').value ? document.getElementById('post-scheduled').value.replace('T', ' ') + ':00' : null,
     hashtags: document.getElementById('post-hashtags').value,
+    media_urls: mediaUrls,
   };
   if (id) await api(`/api/posts/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
   else await api('/api/posts', { method: 'POST', body: JSON.stringify(data) });
@@ -5654,6 +6073,11 @@ loadAll().then(() => {
   setTimeout(checkHashNavigation, 500); 
   loadCalendar(); 
   initializeFromURL(); // Initialize from URL to show correct page on load
+}).catch(e => {
+  console.error('loadAll failed:', e);
+  // Still render with whatever data we have
+  render();
+  initializeFromURL();
 });
 setInterval(incrementalRefresh, 30000);
 </script>
