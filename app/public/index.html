@@ -355,10 +355,7 @@
       <a href="/blockers" class="nav-item" data-section="blockers">⚠️ Blockers</a>
       <a href="/reports" class="nav-item" data-section="reports">📂 Reports</a>
       <a href="/priorities" class="nav-item" data-section="priorities">🔥 Priorities</a>
-      <a href="/initiatives" class="nav-item" data-section="initiatives">🎯 Initiatives</a>
-      <a href="/reporting" class="nav-item" data-section="reporting">📅 Reporting</a>
       <a href="/vendors" class="nav-item" data-section="vendors">💳 Vendors</a>
-      <a href="/revenue" class="nav-item" data-section="revenue">💹 Revenue Data</a>
       <a href="/org" class="nav-item" data-section="org">🏛 Organization</a>
       <a href="/sync" class="nav-item" data-section="sync">🔄 Sync Status</a>
     </nav>
@@ -1396,24 +1393,10 @@
     </section>
 
     <!-- ═══ Initiatives ═══ -->
-    <section id="sec-initiatives" class="hidden">
-      <h2 class="text-2xl font-bold mb-6">Strategic Initiatives</h2>
-      <div id="initiatives-list" class="space-y-4"></div>
-    </section>
 
     <!-- ═══ Reporting ═══ -->
-    <section id="sec-reporting" class="hidden">
-      <h2 class="text-2xl font-bold mb-6">Reporting Status</h2>
-      <div class="card"><table class="w-full text-sm"><thead><tr class="border-b border-[#2d3148]">
-        <th class="text-left px-5 py-3">Report</th><th class="text-left px-3 py-3">Frequency</th><th class="text-left px-3 py-3">Flow</th><th class="text-left px-3 py-3">Next Due</th><th class="text-left px-3 py-3">Status</th>
-      </tr></thead><tbody id="reporting-table"></tbody></table></div>
-    </section>
 
     <!-- ═══ Revenue ═══ -->
-    <section id="sec-revenue" class="hidden">
-      <h2 class="text-2xl font-bold mb-6">Revenue & Metrics</h2>
-      <div id="revenue-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-4"></div>
-    </section>
 
     <!-- ═══ Organization ═══ -->
     <section id="sec-org" class="hidden">
@@ -1932,7 +1915,7 @@ function render() {
   try { loadActionCounts(); } catch(e) { console.error('loadActionCounts:', e); }
   try { loadActionItems(); } catch(e) { console.error('loadActionItems:', e); }
   try { renderPriorities(); } catch(e) { console.error('renderPriorities:', e); }
-  try { renderInitiatives(); } catch(e) { console.error('renderInitiatives:', e); }
+  try {  } catch(e) { console.error('renderInitiatives:', e); }
   try { renderReporting(); } catch(e) { console.error('renderReporting:', e); }
   try { renderRevenue(); } catch(e) { console.error('renderRevenue:', e); }
   try { renderFunnel(); } catch(e) { console.error('renderFunnel:', e); }
@@ -3595,16 +3578,6 @@ async function exportSummary(){
 // ═══ Remaining sections ═══
 function renderPriorities(){document.getElementById('priorities-list').innerHTML=(DATA.priorities||[]).map(s=>`<div class="card p-5"><h3 class="font-semibold text-blue-400 mb-3">${s.title}</h3><ul class="space-y-2">${s.items.map((it,i)=>`<li class="text-sm flex gap-2"><span class="text-[#64748b] shrink-0">${i+1}.</span><span>${it}</span></li>`).join('')}</ul></div>`).join('');}
 function renderInitiatives(){document.getElementById('initiatives-list').innerHTML=(DATA.initiatives||[]).map(i=>`<div class="card p-5 ${i.category==='Deferred'?'opacity-60':''}"><div class="flex justify-between items-start mb-2"><h3 class="font-semibold">${i.name}</h3><span class="text-xs px-2 py-0.5 rounded-full ${i.category==='Active'?'bg-green-900 text-green-300':'bg-slate-700 text-[#94a3b8]'}">${i.category}</span></div><div class="text-sm text-[#94a3b8] space-y-1">${Object.entries(i.details).map(([k,v])=>`<div><span class="text-[#64748b]">${k}:</span> ${v}</div>`).join('')}</div></div>`).join('');}
-function renderReporting(){document.getElementById('reporting-table').innerHTML=(DATA.reporting||[]).map(r=>`<tr><td class="px-5 py-3 font-medium">${r.report}</td><td class="px-3 py-3">${r.frequency}</td><td class="px-3 py-3 text-[#94a3b8]">${r.flow}</td><td class="px-3 py-3">${r.nextDue}</td><td class="px-3 py-3">${statusBadge(r.status)}</td></tr>`).join('');}
-function renderRevenue(){document.getElementById('revenue-grid').innerHTML=Object.entries(DATA.revenue||{}).map(([cat,ms])=>`<div class="card"><div class="card-header px-5 py-3 font-semibold text-sm">${cat}</div><table class="w-full text-sm">${ms.map(m=>`<tr><td class="px-5 py-2.5">${m.metric}</td><td class="px-3 py-2.5 text-[#94a3b8]">${m.current}</td><td class="px-3 py-2.5 text-[#64748b]">${m.target}</td><td class="px-3 py-2.5">${statusBadge(m.status)}</td></tr>`).join('')}</table></div>`).join('');}
-
-// ═══ Sync Dashboard ═══
-const SYNC_SOURCE_META = {
-  crm: { icon: '🔄', label: 'CRM (Twenty)', color: 'blue' },
-  action_items: { icon: '📝', label: 'Action Items & VP Blockers', color: 'amber' },
-  kpis: { icon: '📈', label: 'KPI Snapshots', color: 'purple' },
-  tasks: { icon: '📋', label: 'Tasks & VP Status', color: 'green' },
-};
 
 async function renderSyncStatus() {
   try {
@@ -4344,9 +4317,6 @@ const routeMap = {
   '/blockers': 'blockers',
   '/reports': 'reports',
   '/priorities': 'priorities',
-  '/initiatives': 'initiatives',
-  '/reporting': 'reporting',
-  '/revenue': 'revenue',
   '/visual-requests': 'visual-requests',
   '/research-requests': 'research-requests'
 };
@@ -4554,7 +4524,7 @@ async function incrementalRefresh() {
     renderKanban();
     renderGantt();
     renderPriorities();
-    renderInitiatives();
+    
     renderReporting();
     renderRevenue();
 
